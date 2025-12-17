@@ -12,17 +12,17 @@ services:
       - .:/usr/src/app
 
   postgres:
-    container_name: ielt1984_postgres
+    container_name: rosecompany_postgres
     image: postgres:latest
     environment:
       POSTGRES_USER: user
       POSTGRES_PASSWORD: password
     volumes:
-      - ielt1984_postgres:/var/lib/postgresql/data
+      - rosecompany_postgres:/var/lib/postgresql/data
     ports:
       - "${POSTGRESQL__PORT}:5432"
     networks:
-      - ielt1984_bridge
+      - rosecompany_bridge
   
   redis:
     image: 'bitnami/redis:latest'
@@ -33,7 +33,7 @@ services:
     ports:
       - "6379:6379"
     networks:
-      - ielt1984_bridge
+      - rosecompany_bridge
     healthcheck:
       test: [ "CMD", "redis-cli", "ping" ]
       interval: 30s
@@ -41,5 +41,8 @@ services:
       retries: 30
 
 networks:
-  ielt1984_bridge:
+  rosecompany_bridge:
     driver: bridge
+
+volumes:
+  rosecompany_postgres:
