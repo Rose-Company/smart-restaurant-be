@@ -1,44 +1,82 @@
+version: '3.8'
+
 services:
   api-server:
+    container_name: rosecompany_api
     platform: linux/amd64
+    image: rosecompany/smart-restaurant-api:latest
     build:
       context: .
-      dockerfile: LocalDockerfile
+      dockerfile: Dockerfile
     command: "go run main.go server --start"
     ports:
       - "3000:8080"
     environment:
+      - GIN_MODE=debug
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=rosecompany_user
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-rosecompany_pass}
+      - POSTGRES_DB=smart_restaurant
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - JWT_SECRET=${JWT_SECRET:-your-secret-key}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - rosecompany_bridge
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
     volumes:
-      - .:/usr/src/app
+      - ./logs:/usr/src/app/logs
 
   postgres:
     container_name: rosecompany_postgres
-    image: postgres:latest
+    image: postgres:15-alpine
     environment:
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: password
+      POSTGRES_USER: rosecompany_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-rosecompany_pass}
+      POSTGRES_DB: smart_restaurant
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8"
     volumes:
       - rosecompany_postgres:/var/lib/postgresql/data
     ports:
-      - "${POSTGRESQL__PORT}:5432"
+      - "5432:5432"
     networks:
       - rosecompany_bridge
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rosecompany_user -d smart_restaurant"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
   
   redis:
-    image: 'bitnami/redis:latest'
-    container_name: redis-db
+    image: redis:7-alpine
+    container_name: rosecompany_redis
     environment:
       - REDIS_REPLICATION_MODE=master
-      - ALLOW_EMPTY_PASSWORD=yes
     ports:
       - "6379:6379"
     networks:
       - rosecompany_bridge
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
-      interval: 30s
-      timeout: 3s
-      retries: 30
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    volumes:
+      - rosecompany_redis:/data
+    command: redis-server --appendonly yes
 
 networks:
   rosecompany_bridge:
@@ -46,3 +84,6 @@ networks:
 
 volumes:
   rosecompany_postgres:
+    driver: local
+  rosecompany_redis:
+    driver: local
