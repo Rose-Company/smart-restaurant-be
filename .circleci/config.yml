@@ -11,168 +11,136 @@ executors:
     resource_class: large
 
 jobs:
-  test:
-    docker:
-      - image: golang:1.21
-    steps:
-      - checkout
-      - run:
-          name: Download dependencies
-          command: go mod download
-      - run:
-          name: Run Tests
-          command: go test ./... -v
-
-  build:
+  build-dockerimage-staging:
     executor: docker-executor
     steps:
       - checkout
       - setup_remote_docker:
           version: docker24
-      - run:
-          name: Build Docker Image
-          command: |
-            docker build -t rosecompany/smart-restaurant-api:${CIRCLE_SHA1:0:7} .
-            docker tag rosecompany/smart-restaurant-api:${CIRCLE_SHA1:0:7} rosecompany/smart-restaurant-api:latest
-      - run:
-          name: Save Docker Image
-          command: |
-            mkdir -p /tmp/workspace
-            docker save rosecompany/smart-restaurant-api:${CIRCLE_SHA1:0:7} > /tmp/workspace/docker-image.tar
-      - persist_to_workspace:
-          root: /tmp/workspace
-          paths:
-            - docker-image.tar
-
-  push-to-registry:
-    executor: docker-executor
-    steps:
-      - attach_workspace:
-          at: /tmp/workspace
-      - setup_remote_docker:
-          version: docker24
-      - run:
-          name: Load Docker Image
-          command: |
-            docker load < /tmp/workspace/docker-image.tar
       - run:
           name: Docker Login
           command: |
             echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
       - run:
-          name: Push to Docker Registry
+          name: Build and Push Staging Docker Image
           command: |
-            docker push rosecompany/smart-restaurant-api:${CIRCLE_SHA1:0:7}
-            docker push rosecompany/smart-restaurant-api:latest
+            if [[ "$CIRCLE_BRANCH" == "staging" ]]; then
+              docker build -t rosecompany/smart-restaurant-api:staging .
+              docker push rosecompany/smart-restaurant-api:staging
+            fi
 
-  deploy-to-staging:
+  build-dockerimage-production:
     executor: docker-executor
     steps:
       - checkout
+      - setup_remote_docker:
+          version: docker24
+      - run:
+          name: Docker Login
+          command: |
+            echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+      - run:
+          name: Build and Push Production Docker Image
+          command: |
+            if [[ "$CIRCLE_BRANCH" == "main" ]]; then
+              docker build -t rosecompany/smart-restaurant-api:${CIRCLE_SHA1:0:7} .
+              docker tag rosecompany/smart-restaurant-api:${CIRCLE_SHA1:0:7} rosecompany/smart-restaurant-api:latest
+              docker push rosecompany/smart-restaurant-api:${CIRCLE_SHA1:0:7}
+              docker push rosecompany/smart-restaurant-api:latest
+            fi
+
+  deploy-staging:
+    executor: docker-executor
+    steps:
       - add_ssh_keys:
           fingerprints:
             - "$SSH_KEY_FINGERPRINT"
       - run:
-          name: Deploy Staging to Shared Server
+          name: Deploy Staging
           command: |
-            export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
-            cat > /tmp/deploy-staging.sh \<< 'EOFSH'
-            #!/bin/bash
-            set -e
-            cd /app/smart-restaurant-api-staging
-            git fetch origin
-            git checkout staging
-            git pull origin staging
-            docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
-            docker compose -f docker-compose.staging.yaml down || true
-            sed -i "s|rosecompany/smart-restaurant-api:.*|rosecompany/smart-restaurant-api:$DEPLOY_VERSION|g" docker-compose.staging.yaml
-            docker compose -f docker-compose.staging.yaml up -d
-            sleep 5
-            curl -f http://localhost:8080/health/status || exit 1
-            echo "✅ Staging deployment successful!"
-            EOFSH
-            chmod +x /tmp/deploy-staging.sh
-            scp -o StrictHostKeyChecking=no -P "$SSH_PORT" /tmp/deploy-staging.sh "$SSH_USER@$SSH_HOST:/tmp/"
-            ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "DEPLOY_VERSION=$DEPLOY_VERSION bash /tmp/deploy-staging.sh"
+            if [[ "$CIRCLE_BRANCH" == "staging" ]]; then
+              export SSH_HOST=$SSH_HOST
+              export SSH_USER=$SSH_USER
+              export SSH_PORT=${SSH_PORT:-22}
+              
+              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -s << 'EOF'
+              cd /app/smart-restaurant-api-staging
+              git fetch origin
+              git checkout staging
+              git pull origin staging
+              docker pull rosecompany/smart-restaurant-api:staging
+              docker compose -f docker-compose.staging.yaml down || true
+              docker compose -f docker-compose.staging.yaml up -d
+              sleep 5
+              curl -f http://localhost:8080/health/status || exit 1
+              echo "✅ Staging deployment successful!"
+              EOF
+            fi
 
-  deploy-to-production:
+  deploy-production:
     executor: docker-executor
     steps:
-      - checkout
       - add_ssh_keys:
           fingerprints:
             - "$SSH_KEY_FINGERPRINT"
       - run:
-          name: Deploy Production to Shared Server
+          name: Deploy Production
           command: |
-            export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
-            cat > /tmp/deploy-production.sh \<< 'EOFSH'
-            #!/bin/bash
-            set -e
-            cd /app/smart-restaurant-api-production
-            git fetch origin
-            git checkout main
-            git pull origin main
-            docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
-            docker compose down || true
-            sed -i "s|rosecompany/smart-restaurant-api:.*|rosecompany/smart-restaurant-api:$DEPLOY_VERSION|g" docker-compose.yaml
-            docker compose up -d
-            sleep 5
-            curl -f http://localhost:3000/health/status || exit 1
-            echo "✅ Production deployment successful!"
-            EOFSH
-            chmod +x /tmp/deploy-production.sh
-            scp -o StrictHostKeyChecking=no -P "$SSH_PORT" /tmp/deploy-production.sh "$SSH_USER@$SSH_HOST:/tmp/"
-            ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "DEPLOY_VERSION=$DEPLOY_VERSION bash /tmp/deploy-production.sh"
+            if [[ "$CIRCLE_BRANCH" == "main" ]]; then
+              export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
+              export SSH_HOST=$SSH_HOST
+              export SSH_USER=$SSH_USER
+              export SSH_PORT=${SSH_PORT:-22}
+              
+              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash -s << 'EOF'
+              cd /app/smart-restaurant-api-production
+              git fetch origin
+              git checkout main
+              git pull origin main
+              docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
+              docker compose down || true
+              docker compose up -d
+              sleep 5
+              curl -f http://localhost:3000/health/status || exit 1
+              echo "✅ Production deployment successful!"
+              EOF
+            fi
 
 workflows:
-  build-test-deploy:
+  build-and-deploy:
     jobs:
-      - test:
+      - build-dockerimage-staging:
+          filters:
+            branches:
+              only:
+                - staging
+      
+      - deploy-staging:
+          requires:
+            - build-dockerimage-staging
+          filters:
+            branches:
+              only:
+                - staging
+      
+      - build-dockerimage-production:
           filters:
             branches:
               only:
                 - main
-                - staging
       
-      - build:
-          requires:
-            - test
-          filters:
-            branches:
-              only:
-                - main
-                - staging
-      
-      - push-to-registry:
-          requires:
-            - build
-          filters:
-            branches:
-              only:
-                - main
-                - staging
-      
-      - deploy-to-staging:
-          requires:
-            - push-to-registry
-          filters:
-            branches:
-              only:
-                - staging
-      
-      - approve-production-deployment:
+      - approve-deploy:
           type: approval
           requires:
-            - push-to-registry
+            - build-dockerimage-production
           filters:
             branches:
               only:
                 - main
       
-      - deploy-to-production:
+      - deploy-production:
           requires:
-            - approve-production-deployment
+            - approve-deploy
           filters:
             branches:
               only:
