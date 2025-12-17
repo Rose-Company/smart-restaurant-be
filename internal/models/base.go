@@ -10,7 +10,7 @@ type QuerySort struct {
 }
 
 // Parse the query string to order string (Ex: http://example.com/messages?sort=created_at.asc,updated_at.acs
-// => order string: created_at asc,updated_at acs)
+// => order string: created_at asc,updated_at acs created_at desc)
 func (s QuerySort) Parse() string {
 	return strings.ReplaceAll(s.Origin, ".", " ")
 }
