@@ -76,7 +76,7 @@ jobs:
           name: Deploy Staging to Shared Server
           command: |
             export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
-            cat > /tmp/deploy-staging.sh << 'EOFSH'
+            cat > /tmp/deploy-staging.sh \<< 'EOFSH'
             #!/bin/bash
             set -e
             cd /app/smart-restaurant-api-staging
@@ -106,7 +106,7 @@ jobs:
           name: Deploy Production to Shared Server
           command: |
             export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
-            cat > /tmp/deploy-production.sh << 'EOFSH'
+            cat > /tmp/deploy-production.sh \<< 'EOFSH'
             #!/bin/bash
             set -e
             cd /app/smart-restaurant-api-production
