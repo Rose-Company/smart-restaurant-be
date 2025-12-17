@@ -76,23 +76,24 @@ jobs:
           name: Deploy Staging to Shared Server
           command: |
             export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
-            export SSH_HOST=$SSH_HOST
-            export SSH_USER=$SSH_USER
-            export SSH_PORT=${SSH_PORT:-22}
-            
-            ssh -o StrictHostKeyChecking=no -p $SSH_PORT "$SSH_USER@$SSH_HOST" bash -s << 'EOFSH'
-              cd /app/smart-restaurant-api-staging
-              git fetch origin
-              git checkout staging
-              git pull origin staging
-              docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
-              docker compose -f docker-compose.staging.yaml down || true
-              sed -i "s|rosecompany/smart-restaurant-api:.*|rosecompany/smart-restaurant-api:$DEPLOY_VERSION|g" docker-compose.staging.yaml
-              docker compose -f docker-compose.staging.yaml up -d
-              sleep 5
-              curl -f http://localhost:8080/health/status || exit 1
-              echo "Staging deployment successful!"
+            cat > /tmp/deploy-staging.sh << 'EOFSH'
+            #!/bin/bash
+            set -e
+            cd /app/smart-restaurant-api-staging
+            git fetch origin
+            git checkout staging
+            git pull origin staging
+            docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
+            docker compose -f docker-compose.staging.yaml down || true
+            sed -i "s|rosecompany/smart-restaurant-api:.*|rosecompany/smart-restaurant-api:$DEPLOY_VERSION|g" docker-compose.staging.yaml
+            docker compose -f docker-compose.staging.yaml up -d
+            sleep 5
+            curl -f http://localhost:8080/health/status || exit 1
+            echo "✅ Staging deployment successful!"
             EOFSH
+            chmod +x /tmp/deploy-staging.sh
+            scp -o StrictHostKeyChecking=no -P "$SSH_PORT" /tmp/deploy-staging.sh "$SSH_USER@$SSH_HOST:/tmp/"
+            ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "DEPLOY_VERSION=$DEPLOY_VERSION bash /tmp/deploy-staging.sh"
 
   deploy-to-production:
     executor: docker-executor
@@ -105,23 +106,24 @@ jobs:
           name: Deploy Production to Shared Server
           command: |
             export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
-            export SSH_HOST=$SSH_HOST
-            export SSH_USER=$SSH_USER
-            export SSH_PORT=${SSH_PORT:-22}
-            
-            ssh -o StrictHostKeyChecking=no -p $SSH_PORT "$SSH_USER@$SSH_HOST" bash -s << 'EOFSH'
-              cd /app/smart-restaurant-api-production
-              git fetch origin
-              git checkout main
-              git pull origin main
-              docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
-              docker compose down || true
-              sed -i "s|rosecompany/smart-restaurant-api:.*|rosecompany/smart-restaurant-api:$DEPLOY_VERSION|g" docker-compose.yaml
-              docker compose up -d
-              sleep 5
-              curl -f http://localhost:3000/health/status || exit 1
-              echo "✅ Production deployment successful!"
+            cat > /tmp/deploy-production.sh << 'EOFSH'
+            #!/bin/bash
+            set -e
+            cd /app/smart-restaurant-api-production
+            git fetch origin
+            git checkout main
+            git pull origin main
+            docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
+            docker compose down || true
+            sed -i "s|rosecompany/smart-restaurant-api:.*|rosecompany/smart-restaurant-api:$DEPLOY_VERSION|g" docker-compose.yaml
+            docker compose up -d
+            sleep 5
+            curl -f http://localhost:3000/health/status || exit 1
+            echo "✅ Production deployment successful!"
             EOFSH
+            chmod +x /tmp/deploy-production.sh
+            scp -o StrictHostKeyChecking=no -P "$SSH_PORT" /tmp/deploy-production.sh "$SSH_USER@$SSH_HOST:/tmp/"
+            ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "DEPLOY_VERSION=$DEPLOY_VERSION bash /tmp/deploy-production.sh"
 
 workflows:
   build-test-deploy:
