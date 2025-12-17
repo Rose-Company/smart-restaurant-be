@@ -4,6 +4,12 @@ version: 2.1
 orbs:
   docker: circleci/docker@2.1.4
 
+executors:
+  docker-executor:
+    docker:
+      - image: cimg/base:stable
+    resource_class: large
+
 jobs:
   test:
     docker:
@@ -18,7 +24,7 @@ jobs:
           command: go test ./... -v
 
   build:
-    executor: docker/default
+    executor: docker-executor
     steps:
       - checkout
       - setup_remote_docker:
@@ -39,7 +45,7 @@ jobs:
             - docker-image.tar
 
   push-to-registry:
-    executor: docker/default
+    executor: docker-executor
     steps:
       - attach_workspace:
           at: /tmp/workspace
@@ -60,7 +66,7 @@ jobs:
             docker push rosecompany/smart-restaurant-api:latest
 
   deploy-to-staging:
-    executor: docker/default
+    executor: docker-executor
     steps:
       - checkout
       - add_ssh_keys:
@@ -103,7 +109,7 @@ jobs:
             EOFSH
 
   deploy-to-production:
-    executor: docker/default
+    executor: docker-executor
     steps:
       - checkout
       - add_ssh_keys:
