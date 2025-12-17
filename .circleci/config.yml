@@ -80,32 +80,18 @@ jobs:
             export SSH_USER=$SSH_USER
             export SSH_PORT=${SSH_PORT:-22}
             
-            # SSH into shared server and deploy staging
-            ssh -o StrictHostKeyChecking=no -p $SSH_PORT "$SSH_USER@$SSH_HOST" << 'EOFSH'
-            cd /app/smart-restaurant-api-staging
-            
-            # Pull latest code from staging
-            git fetch origin
-            git checkout staging
-            git pull origin staging
-            
-            # Pull latest Docker image
-            docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
-            
-            # Stop and remove old staging container
-            docker compose -f docker-compose.staging.yaml down || true
-            
-            # Update docker-compose with new image version
-            sed -i "s|rosecompany/smart-restaurant-api:.*|rosecompany/smart-restaurant-api:$DEPLOY_VERSION|g" docker-compose.staging.yaml
-            
-            # Start new staging container
-            docker compose -f docker-compose.staging.yaml up -d
-            
-            # Verify deployment
-            sleep 5
-            curl -f http://localhost:8080/health/status || exit 1
-            
-            echo "Staging deployment successful!"
+            ssh -o StrictHostKeyChecking=no -p $SSH_PORT "$SSH_USER@$SSH_HOST" bash -s << 'EOFSH'
+              cd /app/smart-restaurant-api-staging
+              git fetch origin
+              git checkout staging
+              git pull origin staging
+              docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
+              docker compose -f docker-compose.staging.yaml down || true
+              sed -i "s|rosecompany/smart-restaurant-api:.*|rosecompany/smart-restaurant-api:$DEPLOY_VERSION|g" docker-compose.staging.yaml
+              docker compose -f docker-compose.staging.yaml up -d
+              sleep 5
+              curl -f http://localhost:8080/health/status || exit 1
+              echo "Staging deployment successful!"
             EOFSH
 
   deploy-to-production:
@@ -123,32 +109,18 @@ jobs:
             export SSH_USER=$SSH_USER
             export SSH_PORT=${SSH_PORT:-22}
             
-            # SSH into shared server and deploy production
-            ssh -o StrictHostKeyChecking=no -p $SSH_PORT "$SSH_USER@$SSH_HOST" << 'EOFSH'
-            cd /app/smart-restaurant-api-production
-            
-            # Pull latest code from main
-            git fetch origin
-            git checkout main
-            git pull origin main
-            
-            # Pull latest Docker image
-            docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
-            
-            # Stop and remove old production container
-            docker compose down || true
-            
-            # Update docker-compose with new image version
-            sed -i "s|rosecompany/smart-restaurant-api:.*|rosecompany/smart-restaurant-api:$DEPLOY_VERSION|g" docker-compose.yaml
-            
-            # Start new production container
-            docker compose up -d
-            
-            # Verify deployment
-            sleep 5
-            curl -f http://localhost:3000/health/status || exit 1
-            
-            echo "Production deployment successful!"
+            ssh -o StrictHostKeyChecking=no -p $SSH_PORT "$SSH_USER@$SSH_HOST" bash -s << 'EOFSH'
+              cd /app/smart-restaurant-api-production
+              git fetch origin
+              git checkout main
+              git pull origin main
+              docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
+              docker compose down || true
+              sed -i "s|rosecompany/smart-restaurant-api:.*|rosecompany/smart-restaurant-api:$DEPLOY_VERSION|g" docker-compose.yaml
+              docker compose up -d
+              sleep 5
+              curl -f http://localhost:3000/health/status || exit 1
+              echo "✅ Production deployment successful!"
             EOFSH
 
 workflows:
