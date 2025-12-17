@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  api-app:
+    image: ieltslms/api-app:staging
+    restart: always
+    environment:
+      - API_INFO__VERSION=staging
+    ports:
+      - '8080:8080'
+    networks:
+      - api-network
+networks:
+  api-network:
+    driver: bridge

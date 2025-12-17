@@ -1,0 +1,45 @@
+services:
+  api-server:
+    platform: linux/amd64
+    build:
+      context: .
+      dockerfile: LocalDockerfile
+    command: "go run main.go server --start"
+    ports:
+      - "3000:8080"
+    environment:
+    volumes:
+      - .:/usr/src/app
+
+  postgres:
+    container_name: ielt1984_postgres
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ielt1984_postgres:/var/lib/postgresql/data
+    ports:
+      - "${POSTGRESQL__PORT}:5432"
+    networks:
+      - ielt1984_bridge
+  
+  redis:
+    image: 'bitnami/redis:latest'
+    container_name: redis-db
+    environment:
+      - REDIS_REPLICATION_MODE=master
+      - ALLOW_EMPTY_PASSWORD=yes
+    ports:
+      - "6379:6379"
+    networks:
+      - ielt1984_bridge
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 30s
+      timeout: 3s
+      retries: 30
+
+networks:
+  ielt1984_bridge:
+    driver: bridge
