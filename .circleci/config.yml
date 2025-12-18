@@ -60,17 +60,17 @@ jobs:
           command: |
             if [[ "$CIRCLE_BRANCH" == "staging" ]]; then
               ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< 'DEPLOY_EOF'
-              cd /app/smart-restaurant-api-staging
-              git fetch origin
-              git checkout staging
-              git pull origin staging
-              docker pull mikenam/smart-restaurant-api:staging
-              docker compose -f docker-compose.staging.yaml down || true
-              docker compose -f docker-compose.staging.yaml up -d
-              sleep 5
-              curl -f http://localhost:8080/health/status || exit 1
-              echo "✅ Staging deployment successful!"
-              DEPLOY_EOF
+            cd /app/smart-restaurant-api-staging
+            git fetch origin
+            git checkout staging
+            git pull origin staging
+            docker pull mikenam/smart-restaurant-api:staging
+            docker compose -f docker-compose.staging.yaml down || true
+            docker compose -f docker-compose.staging.yaml up -d
+            sleep 5
+            curl -f http://localhost:8080/health/status || exit 1
+            echo "✅ Staging deployment successful!"
+            DEPLOY_EOF
             fi
 
   deploy-production:
@@ -85,17 +85,17 @@ jobs:
             if [[ "$CIRCLE_BRANCH" == "main" ]]; then
               export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
               ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< 'DEPLOY_EOF'
-              cd /app/smart-restaurant-api-production
-              git fetch origin
-              git checkout main
-              git pull origin main
-              docker pull mikenam/smart-restaurant-api:$DEPLOY_VERSION
-              docker compose down || true
-              docker compose up -d
-              sleep 5
-              curl -f http://localhost:3000/health/status || exit 1
-              echo "✅ Production deployment successful!"
-              DEPLOY_EOF
+            cd /app/smart-restaurant-api-production
+            git fetch origin
+            git checkout main
+            git pull origin main
+            docker pull mikenam/smart-restaurant-api:$DEPLOY_VERSION
+            docker compose down || true
+            docker compose up -d
+            sleep 5
+            curl -f http://localhost:3000/health/status || exit 1
+            echo "✅ Production deployment successful!"
+            DEPLOY_EOF
             fi
 
 workflows:
