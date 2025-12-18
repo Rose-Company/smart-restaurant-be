@@ -24,7 +24,7 @@ jobs:
       - run:
           name: Build and Push Staging Docker Image
           command: |
-            if [["$CIRCLE_BRANCH" == "staging" ]]; then
+            if [[ "$CIRCLE_BRANCH" == "staging" ]]; then
               docker build -t mikenam/smart-restaurant-api:staging .
               docker push mikenam/smart-restaurant-api:staging
             fi
@@ -42,7 +42,7 @@ jobs:
       - run:
           name: Build and Push Production Docker Image
           command: |
-            if [["$CIRCLE_BRANCH" == "main" ]]; then
+            if [[ "$CIRCLE_BRANCH" == "main" ]]; then
               docker build -t mikenam/smart-restaurant-api:${CIRCLE_SHA1:0:7} .
               docker tag mikenam/smart-restaurant-api:${CIRCLE_SHA1:0:7} mikenam/smart-restaurant-api:latest
               docker push mikenam/smart-restaurant-api:${CIRCLE_SHA1:0:7}
@@ -57,7 +57,7 @@ jobs:
             - "$SSH_KEY_FINGERPRINT"
       - run:
           name: Deploy Staging
-          command: |-
+          command: |
             if [[ "$CIRCLE_BRANCH" == "staging" ]]; then
               ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< 'DEPLOY_EOF'
               cd /app/smart-restaurant-api-staging
@@ -81,10 +81,10 @@ jobs:
             - "$SSH_KEY_FINGERPRINT"
       - run:
           name: Deploy Production
-          command: |-
+          command: |
             if [[ "$CIRCLE_BRANCH" == "main" ]]; then
               export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
-              ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< DEPLOY_EOF
+              ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< 'DEPLOY_EOF'
               cd /app/smart-restaurant-api-production
               git fetch origin
               git checkout main
