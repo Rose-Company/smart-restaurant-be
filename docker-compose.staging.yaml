@@ -4,6 +4,8 @@ services:
   api-app:
     image: mikenam/smart-restaurant-api:staging
     restart: always
+    env_file:
+      - .env
     environment:
       - API_INFO__VERSION=staging
     ports:

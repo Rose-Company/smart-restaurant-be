@@ -59,7 +59,7 @@ jobs:
               echo "Deploying to staging..."
               echo "$SSH_STAGING" | tr -d '\n' | base64 -d > /tmp/ssh_key_staging
               chmod 600 /tmp/ssh_key_staging
-              ssh -i /tmp/ssh_key_staging -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST "cd /app/smart-restaurant-api-staging && git fetch origin && git checkout staging && git pull origin staging && docker pull mikenam/smart-restaurant-api:staging && docker compose -f docker-compose.staging.yaml down || true && docker compose -f docker-compose.staging.yaml up -d && sleep 5 && curl -f http://localhost:8080/health/status || exit 1 && echo '✅ Staging deployment successful!'"
+              ssh -i /tmp/ssh_key_staging -o StrictHostKeyChecking=no -p $SSH_PORT $SSH_USER@$SSH_HOST "cd /app/smart-restaurant-api-staging && git fetch origin && git checkout staging && git pull origin staging && docker pull mikenam/smart-restaurant-api:staging && docker compose -f docker-compose.staging.yaml down || true && docker compose -f docker-compose.staging.yaml up -d && echo 'Waiting for app to start...' && sleep 15 && docker compose -f docker-compose.staging.yaml logs --tail=50 && curl -f http://localhost:8080/health/status && echo '✅ Staging deployment successful!'"
             fi
 
   deploy-production:
