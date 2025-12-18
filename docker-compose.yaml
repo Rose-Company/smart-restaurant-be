@@ -4,7 +4,7 @@ services:
   api-server:
     container_name: rosecompany_api
     platform: linux/amd64
-    image: rosecompany/smart-restaurant-api:latest
+    image: mikenam/smart-restaurant-api:latest
     build:
       context: .
       dockerfile: Dockerfile

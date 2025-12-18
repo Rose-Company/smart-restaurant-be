@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   api-app:
-    image: rosecompany/api-app:staging
+    image: mikenam/smart-restaurant-api:staging
     restart: always
     environment:
       - API_INFO__VERSION=staging
