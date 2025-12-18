@@ -24,9 +24,9 @@ jobs:
       - run:
           name: Build and Push Staging Docker Image
           command: |
-            if [[ "$CIRCLE_BRANCH" == "staging" ]]; then
-              docker build -t rosecompany/smart-restaurant-api:staging .
-              docker push rosecompany/smart-restaurant-api:staging
+            if [["$CIRCLE_BRANCH" == "staging" ]]; then
+              docker build -t mikenam/smart-restaurant-api:staging .
+              docker push mikenam/smart-restaurant-api:staging
             fi
 
   build-dockerimage-production:
@@ -42,11 +42,11 @@ jobs:
       - run:
           name: Build and Push Production Docker Image
           command: |
-            if [[ "$CIRCLE_BRANCH" == "main" ]]; then
-              docker build -t rosecompany/smart-restaurant-api:${CIRCLE_SHA1:0:7} .
-              docker tag rosecompany/smart-restaurant-api:${CIRCLE_SHA1:0:7} rosecompany/smart-restaurant-api:latest
-              docker push rosecompany/smart-restaurant-api:${CIRCLE_SHA1:0:7}
-              docker push rosecompany/smart-restaurant-api:latest
+            if [["$CIRCLE_BRANCH" == "main" ]]; then
+              docker build -t mikenam/smart-restaurant-api:${CIRCLE_SHA1:0:7} .
+              docker tag mikenam/smart-restaurant-api:${CIRCLE_SHA1:0:7} mikenam/smart-restaurant-api:latest
+              docker push mikenam/smart-restaurant-api:${CIRCLE_SHA1:0:7}
+              docker push mikenam/smart-restaurant-api:latest
             fi
 
   deploy-staging:
@@ -68,7 +68,7 @@ jobs:
               git fetch origin
               git checkout staging
               git pull origin staging
-              docker pull rosecompany/smart-restaurant-api:staging
+              docker pull mikenam/smart-restaurant-api:staging
               docker compose -f docker-compose.staging.yaml down || true
               docker compose -f docker-compose.staging.yaml up -d
               sleep 5
@@ -97,7 +97,7 @@ jobs:
               git fetch origin
               git checkout main
               git pull origin main
-              docker pull rosecompany/smart-restaurant-api:$DEPLOY_VERSION
+              docker pull mikenam/smart-restaurant-api:$DEPLOY_VERSION
               docker compose down || true
               docker compose up -d
               sleep 5
