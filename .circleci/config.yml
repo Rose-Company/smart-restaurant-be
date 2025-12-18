@@ -63,7 +63,7 @@ jobs:
               export SSH_USER=$SSH_USER
               export SSH_PORT=${SSH_PORT:-22}
               
-              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \<< 'EOF'
+              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" << 'EOF'
               cd /app/smart-restaurant-api-staging
               git fetch origin
               git checkout staging
@@ -92,7 +92,7 @@ jobs:
               export SSH_USER=$SSH_USER
               export SSH_PORT=${SSH_PORT:-22}
               
-              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \<< 'EOF'
+              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" << 'EOF'
               cd /app/smart-restaurant-api-production
               git fetch origin
               git checkout main
