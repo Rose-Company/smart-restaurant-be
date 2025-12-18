@@ -63,7 +63,7 @@ jobs:
               export SSH_USER=$SSH_USER
               export SSH_PORT=${SSH_PORT:-22}
               
-              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \<< 'EOF'
+              cat > /tmp/deploy.sh << 'DEPLOY_EOF'
               cd /app/smart-restaurant-api-staging
               git fetch origin
               git checkout staging
@@ -74,7 +74,9 @@ jobs:
               sleep 5
               curl -f http://localhost:8080/health/status || exit 1
               echo "✅ Staging deployment successful!"
-              EOF
+              DEPLOY_EOF
+              
+              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash < /tmp/deploy.sh
             fi
 
   deploy-production:
@@ -92,7 +94,7 @@ jobs:
               export SSH_USER=$SSH_USER
               export SSH_PORT=${SSH_PORT:-22}
               
-              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" \<< 'EOF'
+              cat > /tmp/deploy.sh << 'DEPLOY_EOF'
               cd /app/smart-restaurant-api-production
               git fetch origin
               git checkout main
@@ -103,7 +105,9 @@ jobs:
               sleep 5
               curl -f http://localhost:3000/health/status || exit 1
               echo "✅ Production deployment successful!"
-              EOF
+              DEPLOY_EOF
+              
+              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash < /tmp/deploy.sh
             fi
 
 workflows:
