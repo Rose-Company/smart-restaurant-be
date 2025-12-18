@@ -57,13 +57,9 @@ jobs:
             - "$SSH_KEY_FINGERPRINT"
       - run:
           name: Deploy Staging
-          command: |
+          command: |-
             if [[ "$CIRCLE_BRANCH" == "staging" ]]; then
-              export SSH_HOST=$SSH_HOST
-              export SSH_USER=$SSH_USER
-              export SSH_PORT=${SSH_PORT:-22}
-              
-              cat > /tmp/deploy.sh \<< 'DEPLOY_EOF'
+              ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< 'DEPLOY_EOF'
               cd /app/smart-restaurant-api-staging
               git fetch origin
               git checkout staging
@@ -75,8 +71,6 @@ jobs:
               curl -f http://localhost:8080/health/status || exit 1
               echo "✅ Staging deployment successful!"
               DEPLOY_EOF
-              
-              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash < /tmp/deploy.sh
             fi
 
   deploy-production:
@@ -87,14 +81,10 @@ jobs:
             - "$SSH_KEY_FINGERPRINT"
       - run:
           name: Deploy Production
-          command: |
+          command: |-
             if [[ "$CIRCLE_BRANCH" == "main" ]]; then
               export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
-              export SSH_HOST=$SSH_HOST
-              export SSH_USER=$SSH_USER
-              export SSH_PORT=${SSH_PORT:-22}
-              
-              cat > /tmp/deploy.sh \<< 'DEPLOY_EOF'
+              ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< DEPLOY_EOF
               cd /app/smart-restaurant-api-production
               git fetch origin
               git checkout main
@@ -106,8 +96,6 @@ jobs:
               curl -f http://localhost:3000/health/status || exit 1
               echo "✅ Production deployment successful!"
               DEPLOY_EOF
-              
-              ssh -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" bash < /tmp/deploy.sh
             fi
 
 workflows:
