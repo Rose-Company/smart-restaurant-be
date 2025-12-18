@@ -57,8 +57,7 @@ jobs:
           command: |
             if [[ "$CIRCLE_BRANCH" == "staging" ]]; then
               echo "Deploying to staging..."
-              echo "$SSH_STAGING" > /tmp/ssh_staging
-              base64 -d /tmp/ssh_staging > /tmp/ssh_key_staging
+              echo "$SSH_STAGING" | tr -d '\n' | base64 -d > /tmp/ssh_key_staging
               chmod 600 /tmp/ssh_key_staging
               ssh -i /tmp/ssh_key_staging -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd /app/smart-restaurant-api-staging && git fetch origin && git checkout staging && git pull origin staging && docker pull mikenam/smart-restaurant-api:staging && docker compose -f docker-compose.staging.yaml down || true && docker compose -f docker-compose.staging.yaml up -d && sleep 5 && curl -f http://localhost:8080/health/status || exit 1 && echo '✅ Staging deployment successful!'"
             fi
@@ -72,8 +71,7 @@ jobs:
             if [[ "$CIRCLE_BRANCH" == "main" ]]; then
               export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
               echo "Deploying version $DEPLOY_VERSION to production..."
-              echo "$SSH_PRODUCTION" > /tmp/ssh_production
-              base64 -d /tmp/ssh_production > /tmp/ssh_key_production
+              echo "$SSH_PRODUCTION" | tr -d '\n' | base64 -d > /tmp/ssh_key_production
               chmod 600 /tmp/ssh_key_production
               ssh -i /tmp/ssh_key_production -o StrictHostKeyChecking=no -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd /app/smart-restaurant-api-production && git fetch origin && git checkout main && git pull origin main && docker pull mikenam/smart-restaurant-api:$DEPLOY_VERSION && docker compose down || true && docker compose up -d && sleep 5 && curl -f http://localhost:3000/health/status || exit 1 && echo '✅ Production deployment successful!'"
             fi
