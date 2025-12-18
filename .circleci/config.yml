@@ -73,7 +73,9 @@ jobs:
                 sleep 5 && \
                 curl -f http://localhost:8080/health/status && \
                 echo '✅ Staging deployment successful!'"
-            fi  deploy-production:
+            fi
+
+  deploy-production:
     executor: docker-executor
     steps:
       - add_ssh_keys:
