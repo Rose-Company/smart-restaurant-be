@@ -97,7 +97,9 @@ jobs:
                 sleep 5 && \
                 curl -f http://localhost:3000/health/status && \
                 echo '✅ Production deployment successful!'"
-            fiworkflows:
+            fi
+
+workflows:
   build-and-deploy:
     jobs:
       - build-dockerimage-staging:
