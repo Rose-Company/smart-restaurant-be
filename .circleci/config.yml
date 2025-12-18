@@ -59,7 +59,7 @@ jobs:
           name: Deploy Staging
           command: |
             if [[ "$CIRCLE_BRANCH" == "staging" ]]; then
-              ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< 'DEPLOY_EOF'
+              ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< DEPLOY_EOF
             cd /app/smart-restaurant-api-staging
             git fetch origin
             git checkout staging
@@ -84,7 +84,7 @@ jobs:
           command: |
             if [[ "$CIRCLE_BRANCH" == "main" ]]; then
               export DEPLOY_VERSION=${CIRCLE_SHA1:0:7}
-              ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< 'DEPLOY_EOF'
+              ssh -o StrictHostKeyChecking=no -p "${SSH_PORT:-22}" "$SSH_USER@$SSH_HOST" \<< DEPLOY_EOF
             cd /app/smart-restaurant-api-production
             git fetch origin
             git checkout main
