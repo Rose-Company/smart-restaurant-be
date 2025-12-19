@@ -5,6 +5,7 @@ import (
 	"app-noti/internal/repositories"
 	"app-noti/pkg/utils"
 	"context"
+	"errors"
 	"strings"
 
 	"gorm.io/gorm"
@@ -83,7 +84,7 @@ func (s *Service) GetTables(ctx context.Context, request *models.ListTablesReque
 		return nil, err
 	}
 
-	// Build response items with order data
+	// Build response items
 	items := make([]*models.TableWithOrderData, 0, len(tables))
 	for _, table := range tables {
 		item := &models.TableWithOrderData{
@@ -95,7 +96,7 @@ func (s *Service) GetTables(ctx context.Context, request *models.ListTablesReque
 		}
 
 		// If table is occupied, get order data
-		if table.Status == "Occupied" {
+		if table.Status == "occupied" {
 			orderData, err := s.getTableOrderData(ctx, table.ID)
 			if err == nil && orderData != nil {
 				item.OrderData = orderData
@@ -113,7 +114,6 @@ func (s *Service) GetTables(ctx context.Context, request *models.ListTablesReque
 	}, nil
 }
 
-// Helper function to get order data for a table
 func (s *Service) getTableOrderData(ctx context.Context, tableID int) (*models.TableOrderData, error) {
 	var result struct {
 		ActiveOrders int     `gorm:"column:active_orders"`
@@ -123,7 +123,7 @@ func (s *Service) getTableOrderData(ctx context.Context, tableID int) (*models.T
 	err := s.tableRepo.GetDB().Raw(`
 		SELECT 
 			COUNT(*) as active_orders,
-			COALESCE(SUM(total_amount), 0) as total_bill
+			COALESCE(SUM(total), 0) as total_bill
 		FROM orders
 		WHERE table_id = ? AND status IN ('pending', 'processing')
 	`, tableID).Scan(&result).Error
@@ -140,4 +140,101 @@ func (s *Service) getTableOrderData(ctx context.Context, tableID int) (*models.T
 		ActiveOrders: result.ActiveOrders,
 		TotalBill:    result.TotalBill,
 	}, nil
+}
+
+// GetTableByID retrieves a single table by ID
+func (s *Service) GetTableByID(ctx context.Context, id int) (*models.TableWithOrderData, error) {
+	table, err := s.tableRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	response := &models.TableWithOrderData{
+		ID:          table.ID,
+		TableNumber: table.TableNumber,
+		Capacity:    table.Capacity,
+		Location:    table.Location,
+		Status:      table.Status,
+	}
+
+	// If table is occupied, get order data
+	if table.Status == "occupied" {
+		orderData, err := s.getTableOrderData(ctx, table.ID)
+		if err == nil && orderData != nil {
+			response.OrderData = orderData
+		}
+	}
+
+	return response, nil
+}
+
+// CreateTable creates a new table
+func (s *Service) CreateTable(ctx context.Context, request *models.CreateTableRequest) (*models.Table, error) {
+	table := &models.Table{
+		TableNumber: request.TableNumber,
+		Capacity:    request.Capacity,
+		Location:    request.Location,
+		Status:      request.Status,
+	}
+
+	created, err := s.tableRepo.Create(ctx, table)
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
+}
+
+func (s *Service) UpdateTable(ctx context.Context, id int, request *models.UpdateTableRequest) (*models.Table, error) {
+	existing, err := s.tableRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Build update columns
+	columns := make(map[string]interface{})
+	if request.TableNumber != nil {
+		columns["table_number"] = *request.TableNumber
+	}
+	if request.Capacity != nil {
+		columns["capacity"] = *request.Capacity
+	}
+	if request.Location != nil {
+		columns["location"] = *request.Location
+	}
+	if request.Status != nil {
+		columns["status"] = *request.Status
+	}
+
+	if len(columns) == 0 {
+		return existing, nil
+	}
+
+	updated, err := s.tableRepo.UpdateColumns(ctx, id, columns)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate") {
+			return nil, errors.New("table number already exists")
+		}
+		return nil, err
+	}
+
+	return updated, nil
+}
+
+func (s *Service) UpdateTableStatus(ctx context.Context, id int, request *models.UpdateTableStatusRequest) (*models.Table, error) {
+	_, err := s.tableRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	columns := map[string]interface{}{
+		"status": request.Status,
+	}
+
+	updated, err := s.tableRepo.UpdateColumns(ctx, id, columns)
+	if err != nil {
+		return nil, err
+	}
+
+	return updated, nil
 }
