@@ -26,4 +26,8 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 	// authConfig := h.sc.GetAuthConfig()
 	// authenticator := middleware.NewAuthenticator(authConfig)
 
+	admin := c.Group("/api/admin")
+	{
+		admin.GET("/tables", h.GetTables())
+	}
 }
