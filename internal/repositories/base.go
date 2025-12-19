@@ -17,6 +17,7 @@ type Clause func(tx *gorm.DB)
 type BaseRepository[M Model] interface {
 	List(ctx context.Context, params models.QueryParams, clauses ...Clause) ([]*M, error)
 	GetByID(ctx context.Context, id interface{}) (*M, error)
+	GetAll(ctx context.Context, params models.QueryParams) ([]*M, error)
 	Count(ctx context.Context, params models.QueryParams, clauses ...Clause) (int64, error)
 	Create(ctx context.Context, o *M) (*M, error)
 	Update(ctx context.Context, id interface{}, o *M, clauses ...Clause) (*M, error)
@@ -35,6 +36,17 @@ type BaseRepository[M Model] interface {
 type baseRepository[M Model] struct {
 	model *M
 	db    *gorm.DB
+}
+
+func (b *baseRepository[M]) GetAll(
+	ctx context.Context,
+	params models.QueryParams,
+) ([]*M, error) {
+	var items []*M
+	if err := b.db.WithContext(ctx).Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 func NewBaseRepository[M Model](db *gorm.DB) BaseRepository[M] {

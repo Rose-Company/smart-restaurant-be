@@ -5,8 +5,12 @@ import (
 	"app-noti/internal/repositories"
 	"app-noti/pkg/utils"
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
+	"fmt"
 	"strings"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -150,11 +154,14 @@ func (s *Service) GetTableByID(ctx context.Context, id int) (*models.TableWithOr
 	}
 
 	response := &models.TableWithOrderData{
-		ID:          table.ID,
-		TableNumber: table.TableNumber,
-		Capacity:    table.Capacity,
-		Location:    table.Location,
-		Status:      table.Status,
+		ID:               table.ID,
+		TableNumber:      table.TableNumber,
+		Capacity:         table.Capacity,
+		Location:         table.Location,
+		Status:           table.Status,
+		QrToken:          table.QrToken,
+		QrTokenCreatedAt: table.QrTokenCreatedAt,
+		QrTokenExpiresAt: table.QrTokenExpiresAt,
 	}
 
 	// If table is occupied, get order data
@@ -237,4 +244,48 @@ func (s *Service) UpdateTableStatus(ctx context.Context, id int, request *models
 	}
 
 	return updated, nil
+}
+
+func (s *Service) GenerateQrCodeByTableId(ctx context.Context, tableId int) (string, error) {
+	table, err := s.tableRepo.GetByID(ctx, tableId)
+	if err != nil {
+		return "", err
+	}
+
+	token, err := generateSecureToken(32)
+	if err != nil {
+		return "", err
+	}
+
+	now := time.Now()
+	expiredAt := now.Add(24 * time.Hour)
+
+	table.QrToken = token
+	table.QrTokenCreatedAt = &now
+	table.QrTokenExpiresAt = &expiredAt
+
+	_, err = s.tableRepo.Update(ctx, table.ID, table)
+	if err != nil {
+		return "", err
+	}
+
+	url := fmt.Sprintf(
+		"https://smart-restaurant-fe.vercel.app/menu?table=%d&token=%s",
+		table.ID,
+		token,
+	)
+
+	return url, nil
+}
+
+func generateSecureToken(n int) (string, error) {
+	b := make([]byte, n)
+	if _, err := rand.Read(b); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(b), nil
+}
+
+func (s *Service) GetAllTables(ctx context.Context) ([]*models.Table, error) {
+	return s.tableRepo.GetAll(ctx, models.QueryParams{})
 }
