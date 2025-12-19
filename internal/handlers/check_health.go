@@ -9,6 +9,6 @@ import (
 
 func Check(sc server.ServerContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(common.SUCCESS_STATUS, common.ResponseSuccess(common.REQUEST_SUCCESS, "", "successfully loaded"))
+		c.JSON(common.SUCCESS_STATUS, common.ResponseSuccess(common.REQUEST_SUCCESS, "", "success"))
 	}
 }
