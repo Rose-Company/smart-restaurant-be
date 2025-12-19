@@ -20,6 +20,7 @@ func NewMainPostgres(prefix string) (error, *postgres2.Postgres) {
 		User:      config.Config.Postgres.User,
 		Password:  config.Config.Postgres.Pass,
 		Host:      config.Config.Postgres.Host,
+		Port:      config.Config.Postgres.Port,
 		Params:    config.Config.Postgres.Params,
 		Database:  config.Config.Postgres.Db,
 		DebugMode: debugMode,
