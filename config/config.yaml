@@ -1,5 +1,6 @@
 postgres:
   host:
+  port:
   user:
   pass:
   db:
