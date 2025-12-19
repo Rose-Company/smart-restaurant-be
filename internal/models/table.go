@@ -13,13 +13,16 @@ type ListTablesRequest struct {
 }
 
 type Table struct {
-	ID          int        `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	TableNumber string     `json:"table_number" gorm:"column:table_number"`
-	Capacity    int        `json:"capacity" gorm:"column:capacity"`
-	Location    string     `json:"location" gorm:"column:location"`
-	Status      string     `json:"status" gorm:"column:status"`
-	CreatedAt   *time.Time `json:"created_at,omitempty" gorm:"column:created_at"`
-	UpdatedAt   *time.Time `json:"updated_at,omitempty" gorm:"column:updated_at"`
+	ID               int        `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	TableNumber      string     `json:"table_number" gorm:"column:table_number"`
+	Capacity         int        `json:"capacity" gorm:"column:capacity"`
+	Location         string     `json:"location" gorm:"column:location"`
+	Status           string     `json:"status" gorm:"column:status"`
+	QrToken          string     `json:"qr_token" gorm:"column:qr_token"`
+	QrTokenCreatedAt *time.Time `json:"qr_token_created_at" gorm:"column:qr_token_created_at"`
+	QrTokenExpiresAt *time.Time `json:"qr_token_expires_at" gorm:"column:qr_token_expires_at"`
+	CreatedAt        *time.Time `json:"created_at,omitempty" gorm:"column:created_at"`
+	UpdatedAt        *time.Time `json:"updated_at,omitempty" gorm:"column:updated_at"`
 }
 
 type TableOrderData struct {
@@ -28,12 +31,15 @@ type TableOrderData struct {
 }
 
 type TableWithOrderData struct {
-	ID          int             `json:"id"`
-	TableNumber string          `json:"table_number"`
-	Capacity    int             `json:"capacity"`
-	Location    string          `json:"location"`
-	Status      string          `json:"status"`
-	OrderData   *TableOrderData `json:"order_data,omitempty"`
+	ID               int             `json:"id"`
+	TableNumber      string          `json:"table_number"`
+	Capacity         int             `json:"capacity"`
+	Location         string          `json:"location"`
+	Status           string          `json:"status"`
+	QrToken          string          `json:"qr_token" gorm:"column:qr_token"`
+	QrTokenCreatedAt *time.Time      `json:"qr_token_created_at" gorm:"column:qr_token_created_at"`
+	QrTokenExpiresAt *time.Time      `json:"qr_token_expires_at" gorm:"column:qr_token_expires_at"`
+	OrderData        *TableOrderData `json:"order_data,omitempty"`
 }
 
 type CreateTableRequest struct {
@@ -52,6 +58,14 @@ type UpdateTableRequest struct {
 
 type UpdateTableStatusRequest struct {
 	Status string `json:"status" binding:"required,oneof=active occupied inactive"`
+}
+
+type GenerateQrCodeRequest struct {
+	TableNumber string `json:"table_number" binding:"required"`
+}
+
+type GenerateQrCodeResponse struct {
+	Url string `json:"url"`
 }
 
 func (Table) TableName() string {
