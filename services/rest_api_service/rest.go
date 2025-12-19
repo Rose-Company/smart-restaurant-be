@@ -25,9 +25,12 @@ func RestHandler(sc server.ServerContext) func() *gin.Engine {
 		router.Use(requestid.New())
 		router.Use(middleware.Logger(sc), middleware.Recovery(sc))
 		router.Use(cors.New(cors.Config{
-			AllowOrigins: []string{"*"},
-			AllowHeaders: []string{"*"},
-			AllowMethods: []string{"GET", "POST", "PUT", "DELETE", "PATCH"},
+			AllowOrigins:     []string{"*"},
+			AllowHeaders:     []string{"*"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"},
+			ExposeHeaders:    []string{"Content-Length", "Content-Type"},
+			AllowCredentials: false,
+			MaxAge:           12 * 3600,
 		}))
 
 		sc.InitAuthorizationData()
