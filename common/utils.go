@@ -140,24 +140,6 @@ func UnmarshalJSON(input string) (datatypes.JSON, error) {
 	return result, nil
 }
 
-func IsValidObjectType(objectType string) bool {
-	validTypes := []string{
-		ObjectTypeVocab,
-		ObjectTypeLesson,
-		ObjectTypeQuiz,
-		ObjectTypeCourse,
-		ObjectTypeComment,
-		ObjectTypeReview,
-	}
-
-	for _, v := range validTypes {
-		if objectType == v {
-			return true
-		}
-	}
-	return false
-}
-
 func Contains(slice []int, item int) bool {
 	for _, s := range slice {
 		if s == item {
