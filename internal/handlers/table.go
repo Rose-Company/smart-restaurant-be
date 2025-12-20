@@ -166,7 +166,7 @@ func (h *Handler) downloadQrCodeByTableId() gin.HandlerFunc {
 			return
 		}
 
-		url := fmt.Sprintf("https://smart-restaurant-fe.vercel.app//menu?table=%d&token=%s", table.ID, token)
+		url := fmt.Sprintf("https://smart-restaurant-fe.vercel.app/menu?table=%d&token=%s", table.ID, token)
 
 		png, err := qrcode.Encode(url, qrcode.Medium, 256)
 		if err != nil {
@@ -197,7 +197,7 @@ func (h *Handler) downloadAllQrCode() gin.HandlerFunc {
 				continue
 			}
 
-			url := fmt.Sprintf("https://restaurant-domain.com/menu?table=%d&token=%s", table.ID, table.QrToken)
+			url := fmt.Sprintf("https://smart-restaurant-fe.vercel.app/menu?table=%d&token=%s", table.ID, table.QrToken)
 			png, err := qrcode.Encode(url, qrcode.Medium, 256)
 			if err != nil {
 				zipWriter.Close()
