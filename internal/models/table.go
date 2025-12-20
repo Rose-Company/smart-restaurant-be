@@ -68,6 +68,12 @@ type GenerateQrCodeResponse struct {
 	Url string `json:"url"`
 }
 
+type QrCodeInfo struct {
+	Token     string
+	CreatedAt *time.Time
+	ExpiresAt *time.Time
+}
+
 func (Table) TableName() string {
 	return common.POSTGRES_TABLE_NAME_TABLES
 }
