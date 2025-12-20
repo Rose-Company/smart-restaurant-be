@@ -61,7 +61,9 @@ curl -X GET "http://164.90.145.135:8080/api/admin/tables/7/qr"
   "code": 0,
   "message": "",
   "data": {
-    "url": "https://smart-restaurant-fe.vercel.app/menu?table=7&token=45afdf4d04f8f605c1719304edc695bf6dcfb9b174203cb16f8fbcbb287487bf"
+    "create_at": "2025-12-20T07:58:51.290515Z",
+    "expire_at": "2025-12-21T07:58:51.290515Z",
+    "url": "https://smart-restaurant-fe.vercel.app/menu?table=7&token=643c199c107249bc3ddc999f19fc0d7d46cb47a856d493177b4c8702d3b54512"
   }
 }
 ```

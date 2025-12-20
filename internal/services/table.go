@@ -290,11 +290,15 @@ func (s *Service) GetAllTables(ctx context.Context) ([]*models.Table, error) {
 	return s.tableRepo.GetAll(ctx, models.QueryParams{})
 }
 
-func (s *Service) GetQrCodeByTableId(ctx context.Context, tableId int) (string, error) {
-	table, err := s.tableRepo.GetByID(ctx, tableId)
+func (s *Service) GetQrCodeByTableID(ctx context.Context, tableID int) (*models.QrCodeInfo, error) {
+	table, err := s.tableRepo.GetByID(ctx, tableID)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return table.QrToken, err
+	return &models.QrCodeInfo{
+		Token:     table.QrToken,
+		CreatedAt: table.QrTokenCreatedAt,
+		ExpiresAt: table.QrTokenExpiresAt,
+	}, nil
 }
