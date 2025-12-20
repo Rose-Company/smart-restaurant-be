@@ -48,3 +48,21 @@ Contains PNG files for each table: table_1.png, table_2.png, …
 
 Content-Type: application/zip
 
+### 1.5 GET /api/admin/tables/:id/qr - Get qr code by table id
+
+**Request:**
+```bash
+curl -X GET "http://164.90.145.135:8080/api/admin/tables/7/qr"
+```
+
+**Response:**
+```json
+{
+  "code": 0,
+  "message": "",
+  "data": {
+    "url": "https://smart-restaurant-fe.vercel.app/menu?table=7&token=45afdf4d04f8f605c1719304edc695bf6dcfb9b174203cb16f8fbcbb287487bf"
+  }
+}
+```
+

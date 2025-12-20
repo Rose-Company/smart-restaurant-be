@@ -289,3 +289,12 @@ func generateSecureToken(n int) (string, error) {
 func (s *Service) GetAllTables(ctx context.Context) ([]*models.Table, error) {
 	return s.tableRepo.GetAll(ctx, models.QueryParams{})
 }
+
+func (s *Service) GetQrCodeByTableId(ctx context.Context, tableId int) (string, error) {
+	table, err := s.tableRepo.GetByID(ctx, tableId)
+	if err != nil {
+		return "", err
+	}
+
+	return table.QrToken, err
+}
