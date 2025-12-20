@@ -119,7 +119,33 @@ func (h *Handler) UpdateTableStatus() gin.HandlerFunc {
 	}
 }
 
-func (h *Handler) generateQrCodeByTableId() gin.HandlerFunc {
+func (h *Handler) GetQrCodeByTableId() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		token, err := h.service.GetQrCodeByTableId(c, id)
+		if err != nil {
+			common.AbortWithError(c, err)
+		}
+
+		url := fmt.Sprintf(
+			"https://smart-restaurant-fe.vercel.app/menu?table=%d&token=%s",
+			id,
+			token,
+		)
+
+		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(gin.H{
+			"url": url,
+		}))
+	}
+}
+
+func (h *Handler) GenerateQrCodeByTableId() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
@@ -140,7 +166,7 @@ func (h *Handler) generateQrCodeByTableId() gin.HandlerFunc {
 	}
 }
 
-func (h *Handler) downloadQrCodeByTableId() gin.HandlerFunc {
+func (h *Handler) DownloadQrCodeByTableId() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
@@ -180,7 +206,7 @@ func (h *Handler) downloadQrCodeByTableId() gin.HandlerFunc {
 	}
 }
 
-func (h *Handler) downloadAllQrCode() gin.HandlerFunc {
+func (h *Handler) DownloadAllQrCode() gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		tables, err := h.service.GetAllTables(c)
