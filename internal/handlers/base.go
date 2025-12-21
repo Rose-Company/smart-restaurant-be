@@ -26,4 +26,22 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 	// authConfig := h.sc.GetAuthConfig()
 	// authenticator := middleware.NewAuthenticator(authConfig)
 
+	admin := c.Group("/api/admin")
+	{
+		admin.GET("/tables", h.GetTables())
+		admin.GET("/tables/:id", h.GetTableByID())
+		admin.POST("/tables", h.CreateTable())
+		admin.PUT("/tables/:id", h.UpdateTable())
+		admin.PATCH("/tables/:id/status", h.UpdateTableStatus())
+		admin.POST("/tables/:id/qr/generate", h.GenerateQrCodeByTableId())
+		admin.GET("tables/:id/qr/download", h.DownloadQrCodeByTableId())
+		admin.GET("tables/qr/download-all", h.DownloadAllQrCode())
+		admin.GET("tables/:id/qr", h.GetQrCodeByTableId())
+	}
+
+	menu := c.Group("/api/menu")
+	{
+		menu.GET("", h.loadMenu())
+	}
+
 }
