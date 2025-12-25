@@ -37,7 +37,14 @@ const (
 )
 
 const (
-	POSTGRES_TABLE_NAME_TABLES      = "public.tables"
-	POSTGRES_TABLE_NAME_ORDERS      = "public.orders"
-	POSTGRES_TABLE_NAME_ORDER_ITEMS = "public.order_items"
+	POSTGRES_TABLE_NAME_TABLES                    = "public.tables"
+	POSTGRES_TABLE_NAME_ORDERS                    = "public.orders"
+	POSTGRES_TABLE_NAME_ORDER_ITEMS               = "public.order_items"
+	POSTGRES_TABLE_NAME_RESTAURANTS               = "public.restaurants"
+	POSTGRES_TABLE_NAME_MENU_CATEGORIES           = "public.menu_categories"
+	POSTGRES_TABLE_NAME_MENU_ITEMS                = "public.menu_items"
+	POSTGRES_TABLE_NAME_MENU_ITEM_PHOTOS          = "public.menu_item_photos"
+	POSTGRES_TABLE_NAME_MODIFIER_GROUPS           = "public.modifier_groups"
+	POSTGRES_TABLE_NAME_MODIFIER_OPTIONS          = "public.modifier_options"
+	POSTGRES_TABLE_NAME_MENU_ITEM_MODIFIER_GROUPS = "public.menu_item_modifier_groups"
 )
