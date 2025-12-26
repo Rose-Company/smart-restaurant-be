@@ -300,3 +300,14 @@ func GetOrderID() int {
 	}
 	return orderID
 }
+
+func JoinStrings(parts []string, separator string) string {
+	if len(parts) == 0 {
+		return ""
+	}
+	result := parts[0]
+	for i := 1; i < len(parts); i++ {
+		result += separator + parts[i]
+	}
+	return result
+}
