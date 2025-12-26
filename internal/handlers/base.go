@@ -28,6 +28,7 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 
 	admin := c.Group("/api/admin")
 	{
+		admin.POST("/upload", h.UploadImage())
 		admin.GET("/tables", h.GetTables())
 		admin.GET("/tables/:id", h.GetTableByID())
 		admin.POST("/tables", h.CreateTable())
@@ -45,6 +46,15 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 			menuAdmin.POST("/categories", h.CreateMenuCategory())
 			menuAdmin.PUT("/categories/:id", h.UpdateMenuCategory())
 			menuAdmin.PATCH("/categories/:id/status", h.UpdateMenuCategoryStatus())
+
+			itemsAdmin := menuAdmin.Group("/items")
+			{
+				itemsAdmin.GET("", h.GetMenuItems())
+				itemsAdmin.GET("/:id", h.GetMenuItemByID())
+				itemsAdmin.POST("", h.CreateMenuItem())
+				itemsAdmin.PUT("/:id", h.UpdateMenuItem())
+				itemsAdmin.DELETE("/:id", h.DeleteMenuItem())
+			}
 		}
 	}
 

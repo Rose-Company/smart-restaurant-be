@@ -87,34 +87,90 @@ func (MenuItem) TableName() string {
 }
 
 type CreateMenuItemRequest struct {
-	CategoryID        int     `json:"category_id" binding:"required"`
-	Name              string  `json:"name" binding:"required,max=80"`
-	Description       *string `json:"description"`
-	Price             float64 `json:"price" binding:"required,gt=0"`
-	PrepTimeMinutes   int     `json:"prep_time_minutes" binding:"min=0,max=240"`
-	Status            string  `json:"status" binding:"required,oneof=available unavailable sold_out"`
-	IsChefRecommended bool    `json:"is_chef_recommended"`
+	CategoryID        int                             `json:"category_id" binding:"required"`
+	Name              string                          `json:"name" binding:"required,max=80"`
+	Description       *string                         `json:"description"`
+	Price             float64                         `json:"price" binding:"required,gt=0"`
+	PrepTimeMinutes   int                             `json:"preparation_time" binding:"min=0,max=240"`
+	Status            string                          `json:"status" binding:"required,oneof=available unavailable sold_out"`
+	IsChefRecommended bool                            `json:"chef_recommended"`
+	Images            []CreateMenuItemPhotoRequest    `json:"images"`
+	Modifiers         []CreateMenuItemModifierRequest `json:"modifiers"`
+}
+
+type CreateMenuItemPhotoRequest struct {
+	URL       string `json:"url" binding:"required"`
+	IsPrimary bool   `json:"is_primary"`
+}
+
+type CreateMenuItemModifierRequest struct {
+	ModifierGroupID string `json:"modifier_group_id" binding:"required"`
 }
 
 type UpdateMenuItemRequest struct {
-	CategoryID        *int     `json:"category_id"`
-	Name              *string  `json:"name" binding:"max=80"`
-	Description       *string  `json:"description"`
-	Price             *float64 `json:"price" binding:"gt=0"`
-	PrepTimeMinutes   *int     `json:"prep_time_minutes" binding:"min=0,max=240"`
-	Status            *string  `json:"status" binding:"oneof=available unavailable sold_out"`
-	IsChefRecommended *bool    `json:"is_chef_recommended"`
+	CategoryID        *int                            `json:"category_id"`
+	Name              *string                         `json:"name" binding:"omitempty,max=80"`
+	Description       *string                         `json:"description"`
+	Price             *float64                        `json:"price" binding:"omitempty,gt=0"`
+	PrepTimeMinutes   *int                            `json:"preparation_time" binding:"omitempty,min=0,max=240"`
+	Status            *string                         `json:"status" binding:"omitempty,oneof=available unavailable sold_out"`
+	IsChefRecommended *bool                           `json:"chef_recommended"`
+	Images            []CreateMenuItemPhotoRequest    `json:"images"`
+	Modifiers         []CreateMenuItemModifierRequest `json:"modifiers"`
 }
 
 type ListMenuItemRequest struct {
 	BaseRequestParamsUri
-	Search     *string `form:"search"`
-	Status     *string `form:"status"`
-	CategoryID *int    `form:"category_id"`
+	Search   *string `form:"search"`
+	Status   *string `form:"status"`
+	Category *string `form:"category"`
 }
 
 type MenuItemIDParamsUri struct {
 	ID int `uri:"id" binding:"required,min=1"`
+}
+
+type MenuItemResponse struct {
+	ID              int     `json:"id"`
+	Name            string  `json:"name"`
+	Category        string  `json:"category"`
+	Price           float64 `json:"price"`
+	Status          string  `json:"status"`
+	LastUpdate      string  `json:"last_update"`
+	ChefRecommended bool    `json:"chef_recommended"`
+	ImageURL        string  `json:"image_url,omitempty"`
+	Description     *string `json:"description,omitempty"`
+	PreparationTime int     `json:"preparation_time,omitempty"`
+}
+
+type MenuItemDetailResponse struct {
+	ID              int                    `json:"id"`
+	Name            string                 `json:"name"`
+	Category        string                 `json:"category"`
+	Price           float64                `json:"price"`
+	Status          string                 `json:"status"`
+	LastUpdate      string                 `json:"last_update"`
+	ChefRecommended bool                   `json:"chef_recommended"`
+	ImageURL        string                 `json:"image_url,omitempty"`
+	Description     *string                `json:"description,omitempty"`
+	PreparationTime int                    `json:"preparation_time,omitempty"`
+	Images          []MenuItemPhotoRequest `json:"images,omitempty"`
+	Modifiers       []MenuItemModifier     `json:"modifiers,omitempty"`
+}
+
+type MenuItemPhotoRequest struct {
+	ID        string `json:"id,omitempty"`
+	URL       string `json:"url"`
+	IsPrimary bool   `json:"is_primary"`
+}
+
+type MenuItemModifier struct {
+	ID              string `json:"id,omitempty"`
+	ModifierGroupID string `json:"modifier_group_id"`
+	Name            string `json:"name,omitempty"`
+	Required        bool   `json:"required,omitempty"`
+	SelectionType   string `json:"selection_type,omitempty"`
+	OptionsPreview  string `json:"options_preview,omitempty"`
 }
 
 type MenuItemPhoto struct {
@@ -132,9 +188,4 @@ func (MenuItemPhoto) TableName() string {
 type MenuItemPhotoIDParamsUri struct {
 	MenuItemID int `uri:"menu_item_id" binding:"required,min=1"`
 	ID         int `uri:"id" binding:"required,min=1"`
-}
-
-type CreateMenuItemPhotoRequest struct {
-	Url       string `json:"url" binding:"required"`
-	IsPrimary bool   `json:"is_primary"`
 }
