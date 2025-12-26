@@ -72,12 +72,19 @@ func (s *Service) GetMenuCategories(ctx context.Context, request *models.ListMen
 		return nil, err
 	}
 
+	categoryIDs := make([]int, 0, len(categories))
+	for _, category := range categories {
+		categoryIDs = append(categoryIDs, category.ID)
+	}
+
+	itemCountMap, err := s.getCategoryItemCounts(ctx, categoryIDs)
+	if err != nil {
+		itemCountMap = make(map[int]int)
+	}
+
 	items := make([]*models.MenuCategoryResponse, 0, len(categories))
 	for _, category := range categories {
-		itemCount, err := s.getCategoryItemCount(ctx, category.ID)
-		if err != nil {
-			itemCount = 0
-		}
+		itemCount := itemCountMap[category.ID]
 
 		item := &models.MenuCategoryResponse{
 			ID:           category.ID,
@@ -111,6 +118,25 @@ func (s *Service) getCategoryItemCount(ctx context.Context, categoryID int) (int
 		return 0, err
 	}
 	return int(count), nil
+}
+
+func (s *Service) getCategoryItemCounts(ctx context.Context, categoryIDs []int) (map[int]int, error) {
+	if len(categoryIDs) == 0 {
+		return make(map[int]int), nil
+	}
+
+	filters := []repositories.Clause{
+		func(tx *gorm.DB) {
+			tx.Where("category_id IN ? AND is_deleted = FALSE", categoryIDs)
+		},
+	}
+
+	countMap, err := s.menuItemRepo.CountGroupByInt(ctx, "category_id", filters...)
+	if err != nil {
+		return nil, err
+	}
+
+	return countMap, nil
 }
 
 func (s *Service) GetMenuCategoryByID(ctx context.Context, id int) (*models.MenuCategoryDetailResponse, error) {
