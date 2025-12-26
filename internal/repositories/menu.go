@@ -44,3 +44,7 @@ func NewMenuItemPhotoRepository(db *gorm.DB) *MenuItemPhotoRepo {
 		BaseRepository: baseRepo,
 	}
 }
+
+func (r *MenuItemPhotoRepo) GetDB() *gorm.DB {
+	return r.db
+}

@@ -12,6 +12,10 @@ type ListTablesRequest struct {
 	Zone   *string `form:"zone"`
 }
 
+type TableParamsUri struct {
+	ID int `uri:"id" binding:"required,min=1"`
+}
+
 type Table struct {
 	ID               int        `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	TableNumber      string     `json:"table_number" gorm:"column:table_number"`

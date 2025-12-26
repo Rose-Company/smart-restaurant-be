@@ -21,9 +21,10 @@ func (MenuCategory) TableName() string {
 }
 
 type CreateMenuCategoryRequest struct {
+	RestaurantID *int    `json:"restaurant_id"`
 	Name         string  `json:"name" binding:"required,max=50"`
 	Description  *string `json:"description"`
-	DisplayOrder int     `json:"display_order" binding:"min=0"`
+	DisplayOrder *int    `json:"display_order" binding:"omitempty,min=0"`
 	Status       string  `json:"status" binding:"required,oneof=active inactive"`
 }
 
@@ -38,6 +39,32 @@ type ListMenuCategoryRequest struct {
 	BaseRequestParamsUri
 	Search *string `form:"search"`
 	Status *string `form:"status"`
+}
+
+type MenuCategoryParamsUri struct {
+	ID int `uri:"id" binding:"required,min=1"`
+}
+
+type MenuCategoryResponse struct {
+	ID           int     `json:"id"`
+	Name         string  `json:"name"`
+	Description  *string `json:"description,omitempty"`
+	ItemCount    int     `json:"item_count"`
+	IsActive     bool    `json:"is_active"`
+	DisplayOrder int     `json:"display_order"`
+}
+
+type MenuCategoryDetailResponse struct {
+	ID           int     `json:"id"`
+	Name         string  `json:"name"`
+	Description  *string `json:"description,omitempty"`
+	ItemCount    int     `json:"item_count"`
+	IsActive     bool    `json:"is_active"`
+	DisplayOrder int     `json:"display_order"`
+}
+
+type UpdateMenuCategoryStatusRequest struct {
+	IsActive bool `json:"is_active"`
 }
 
 type MenuItem struct {
@@ -86,6 +113,10 @@ type ListMenuItemRequest struct {
 	CategoryID *int    `form:"category_id"`
 }
 
+type MenuItemIDParamsUri struct {
+	ID int `uri:"id" binding:"required,min=1"`
+}
+
 type MenuItemPhoto struct {
 	ID         int        `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	MenuItemID int        `json:"menu_item_id" gorm:"column:menu_item_id"`
@@ -96,6 +127,11 @@ type MenuItemPhoto struct {
 
 func (MenuItemPhoto) TableName() string {
 	return common.POSTGRES_TABLE_NAME_MENU_ITEM_PHOTOS
+}
+
+type MenuItemPhotoIDParamsUri struct {
+	MenuItemID int `uri:"menu_item_id" binding:"required,min=1"`
+	ID         int `uri:"id" binding:"required,min=1"`
 }
 
 type CreateMenuItemPhotoRequest struct {

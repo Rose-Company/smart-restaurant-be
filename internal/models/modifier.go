@@ -50,6 +50,10 @@ type ListModifierGroupRequest struct {
 	SelectionType *string `form:"selection_type"`
 }
 
+type ModifierGroupIDParamsUri struct {
+	ID int `uri:"id" binding:"required,min=1"`
+}
+
 type ModifierOption struct {
 	ID              int        `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	GroupID         int        `json:"group_id" gorm:"column:group_id"`
@@ -79,6 +83,11 @@ type ListModifierOptionRequest struct {
 	BaseRequestParamsUri
 	Search *string `form:"search"`
 	Status *string `form:"status"`
+}
+
+type ModifierOptionIDParamsUri struct {
+	GroupID int `uri:"group_id" binding:"required,min=1"`
+	ID      int `uri:"id" binding:"required,min=1"`
 }
 
 type MenuItemModifierGroup struct {
