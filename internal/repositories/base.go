@@ -31,6 +31,7 @@ type BaseRepository[M Model] interface {
 	CountWithGroup(ctx context.Context, params models.QueryParams, groupBy string, clauses ...Clause) (map[string]int64, error)
 	UpdatesColumnsByConditions(ctx context.Context, columns map[string]interface{}, clauses ...Clause) error
 	ExecRaw(ctx context.Context, raw string) error
+	CountGroupByInt(ctx context.Context, groupBy string, clauses ...Clause) (map[int]int, error)
 }
 
 type baseRepository[M Model] struct {
@@ -240,4 +241,30 @@ func (b *baseRepository[M]) UpdatesColumnsByConditions(ctx context.Context, colu
 
 func (b *baseRepository[M]) ExecRaw(ctx context.Context, raw string) error {
 	return b.db.Exec(raw).Error
+}
+
+func (b *baseRepository[M]) CountGroupByInt(ctx context.Context, groupBy string, clauses ...Clause) (map[int]int, error) {
+	var results []struct {
+		GroupField int `gorm:"column:group_field"`
+		Count      int `gorm:"column:count"`
+	}
+
+	tx := b.db.Model(b.model)
+	for _, f := range clauses {
+		f(tx)
+	}
+
+	tx = tx.Select(groupBy + " as group_field, COUNT(*) as count").Group(groupBy)
+
+	err := tx.Find(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	counts := make(map[int]int)
+	for _, result := range results {
+		counts[result.GroupField] = result.Count
+	}
+
+	return counts, nil
 }
