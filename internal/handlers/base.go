@@ -37,11 +37,20 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		admin.GET("tables/:id/qr/download", h.DownloadQrCodeByTableId())
 		admin.GET("tables/qr/download-all", h.DownloadAllQrCode())
 		admin.GET("tables/:id/qr", h.GetQrCodeByTableId())
+
+		menuAdmin := admin.Group("/menu")
+		{
+			menuAdmin.GET("/categories", h.GetMenuCategories())
+			menuAdmin.GET("/categories/:id", h.GetMenuCategoryByID())
+			menuAdmin.POST("/categories", h.CreateMenuCategory())
+			menuAdmin.PUT("/categories/:id", h.UpdateMenuCategory())
+			menuAdmin.PATCH("/categories/:id/status", h.UpdateMenuCategoryStatus())
+		}
 	}
 
 	menu := c.Group("/api/menu")
 	{
-		menu.GET("", h.loadMenu())
+		menu.GET("", h.LoadMenu())
 	}
 
 }
