@@ -1,0 +1,197 @@
+package models
+
+import (
+	"app-noti/common"
+	"time"
+)
+
+type MenuCategory struct {
+	ID           int        `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	RestaurantID int        `json:"restaurant_id" gorm:"column:restaurant_id"`
+	Name         string     `json:"name" gorm:"column:name"`
+	Description  *string    `json:"description,omitempty" gorm:"column:description"`
+	DisplayOrder int        `json:"display_order" gorm:"column:display_order"`
+	Status       string     `json:"status" gorm:"column:status"`
+	CreatedAt    *time.Time `json:"created_at,omitempty" gorm:"column:created_at"`
+	UpdatedAt    *time.Time `json:"updated_at,omitempty" gorm:"column:updated_at"`
+}
+
+func (MenuCategory) TableName() string {
+	return common.POSTGRES_TABLE_NAME_MENU_CATEGORIES
+}
+
+type CreateMenuCategoryRequest struct {
+	RestaurantID *int    `json:"restaurant_id"`
+	Name         string  `json:"name" binding:"required,max=50"`
+	Description  *string `json:"description"`
+	DisplayOrder *int    `json:"display_order" binding:"omitempty,min=0"`
+	Status       string  `json:"status" binding:"required,oneof=active inactive"`
+}
+
+type UpdateMenuCategoryRequest struct {
+	Name         *string `json:"name" binding:"max=50"`
+	Description  *string `json:"description"`
+	DisplayOrder *int    `json:"display_order" binding:"min=0"`
+	Status       *string `json:"status" binding:"oneof=active inactive"`
+}
+
+type ListMenuCategoryRequest struct {
+	BaseRequestParamsUri
+	Search *string `form:"search"`
+	Status *string `form:"status"`
+}
+
+type ListMenuRequest struct {
+	BaseRequestParamsUri
+	Search   *string `form:"search"`
+	Category *string `form:"category"`
+}
+
+type MenuCategoryParamsUri struct {
+	ID int `uri:"id" binding:"required,min=1"`
+}
+
+type MenuCategoryResponse struct {
+	ID           int     `json:"id"`
+	Name         string  `json:"name"`
+	Description  *string `json:"description,omitempty"`
+	ItemCount    int     `json:"item_count"`
+	IsActive     bool    `json:"is_active"`
+	DisplayOrder int     `json:"display_order"`
+}
+
+type MenuCategoryDetailResponse struct {
+	ID           int     `json:"id"`
+	Name         string  `json:"name"`
+	Description  *string `json:"description,omitempty"`
+	ItemCount    int     `json:"item_count"`
+	IsActive     bool    `json:"is_active"`
+	DisplayOrder int     `json:"display_order"`
+}
+
+type UpdateMenuCategoryStatusRequest struct {
+	IsActive bool `json:"is_active"`
+}
+
+type MenuItem struct {
+	ID                int        `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	RestaurantID      int        `json:"restaurant_id" gorm:"column:restaurant_id"`
+	CategoryID        int        `json:"category_id" gorm:"column:category_id"`
+	Name              string     `json:"name" gorm:"column:name"`
+	Description       *string    `json:"description,omitempty" gorm:"column:description"`
+	Price             float64    `json:"price" gorm:"column:price"`
+	PrepTimeMinutes   int        `json:"prep_time_minutes" gorm:"column:prep_time_minutes"`
+	Status            string     `json:"status" gorm:"column:status"`
+	IsChefRecommended bool       `json:"is_chef_recommended" gorm:"column:is_chef_recommended"`
+	IsDeleted         bool       `json:"is_deleted" gorm:"column:is_deleted"`
+	CreatedAt         *time.Time `json:"created_at,omitempty" gorm:"column:created_at"`
+	UpdatedAt         *time.Time `json:"updated_at,omitempty" gorm:"column:updated_at"`
+}
+
+func (MenuItem) TableName() string {
+	return common.POSTGRES_TABLE_NAME_MENU_ITEMS
+}
+
+type CreateMenuItemRequest struct {
+	CategoryID        int                             `json:"category_id" binding:"required"`
+	Name              string                          `json:"name" binding:"required,max=80"`
+	Description       *string                         `json:"description"`
+	Price             float64                         `json:"price" binding:"required,gt=0"`
+	PrepTimeMinutes   int                             `json:"preparation_time" binding:"min=0,max=240"`
+	Status            string                          `json:"status" binding:"required,oneof=available unavailable sold_out"`
+	IsChefRecommended bool                            `json:"chef_recommended"`
+	Images            []CreateMenuItemPhotoRequest    `json:"images"`
+	Modifiers         []CreateMenuItemModifierRequest `json:"modifiers"`
+}
+
+type CreateMenuItemPhotoRequest struct {
+	URL       string `json:"url" binding:"required"`
+	IsPrimary bool   `json:"is_primary"`
+}
+
+type CreateMenuItemModifierRequest struct {
+	ModifierGroupID string `json:"modifier_group_id" binding:"required"`
+}
+
+type UpdateMenuItemRequest struct {
+	CategoryID        *int                            `json:"category_id"`
+	Name              *string                         `json:"name" binding:"omitempty,max=80"`
+	Description       *string                         `json:"description"`
+	Price             *float64                        `json:"price" binding:"omitempty,gt=0"`
+	PrepTimeMinutes   *int                            `json:"preparation_time" binding:"omitempty,min=0,max=240"`
+	Status            *string                         `json:"status" binding:"omitempty,oneof=available unavailable sold_out"`
+	IsChefRecommended *bool                           `json:"chef_recommended"`
+	Images            []CreateMenuItemPhotoRequest    `json:"images"`
+	Modifiers         []CreateMenuItemModifierRequest `json:"modifiers"`
+}
+
+type ListMenuItemRequest struct {
+	BaseRequestParamsUri
+	Search   *string `form:"search"`
+	Status   *string `form:"status"`
+	Category *string `form:"category"`
+}
+
+type MenuItemIDParamsUri struct {
+	ID int `uri:"id" binding:"required,min=1"`
+}
+
+type MenuItemResponse struct {
+	ID              int     `json:"id"`
+	Name            string  `json:"name"`
+	Category        string  `json:"category"`
+	Price           float64 `json:"price"`
+	Status          string  `json:"status"`
+	LastUpdate      string  `json:"last_update"`
+	ChefRecommended bool    `json:"chef_recommended"`
+	ImageURL        string  `json:"image_url,omitempty"`
+	Description     *string `json:"description,omitempty"`
+	PreparationTime int     `json:"preparation_time,omitempty"`
+}
+
+type MenuItemDetailResponse struct {
+	ID              int                    `json:"id"`
+	Name            string                 `json:"name"`
+	Category        string                 `json:"category"`
+	Price           float64                `json:"price"`
+	Status          string                 `json:"status"`
+	LastUpdate      string                 `json:"last_update"`
+	ChefRecommended bool                   `json:"chef_recommended"`
+	ImageURL        string                 `json:"image_url,omitempty"`
+	Description     *string                `json:"description,omitempty"`
+	PreparationTime int                    `json:"preparation_time,omitempty"`
+	Images          []MenuItemPhotoRequest `json:"images,omitempty"`
+	Modifiers       []MenuItemModifier     `json:"modifiers,omitempty"`
+}
+
+type MenuItemPhotoRequest struct {
+	ID        string `json:"id,omitempty"`
+	URL       string `json:"url"`
+	IsPrimary bool   `json:"is_primary"`
+}
+
+type MenuItemModifier struct {
+	ID              string `json:"id,omitempty"`
+	ModifierGroupID string `json:"modifier_group_id"`
+	Name            string `json:"name,omitempty"`
+	Required        bool   `json:"required,omitempty"`
+	SelectionType   string `json:"selection_type,omitempty"`
+	OptionsPreview  string `json:"options_preview,omitempty"`
+}
+
+type MenuItemPhoto struct {
+	ID         int        `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	MenuItemID int        `json:"menu_item_id" gorm:"column:menu_item_id"`
+	Url        string     `json:"url" gorm:"column:url"`
+	IsPrimary  bool       `json:"is_primary" gorm:"column:is_primary"`
+	CreatedAt  *time.Time `json:"created_at,omitempty" gorm:"column:created_at"`
+}
+
+func (MenuItemPhoto) TableName() string {
+	return common.POSTGRES_TABLE_NAME_MENU_ITEM_PHOTOS
+}
+
+type MenuItemPhotoIDParamsUri struct {
+	MenuItemID int `uri:"menu_item_id" binding:"required,min=1"`
+	ID         int `uri:"id" binding:"required,min=1"`
+}

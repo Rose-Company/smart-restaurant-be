@@ -4,6 +4,7 @@ import (
 	"app-noti/common"
 	"app-noti/internal/models"
 	"context"
+	"errors"
 
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -26,16 +27,36 @@ type BaseRepository[M Model] interface {
 	GetIDsByConditions(ctx context.Context, clauses ...Clause) ([]int, error)
 	GetDetailByConditions(ctx context.Context, clauses ...Clause) (*M, error)
 	Delete(ctx context.Context, clauses ...Clause) error
+	DeleteByID(ctx context.Context, id int) (int, error)
 	CreatesMultiple(ctx context.Context, o []*M) error
 	UpdatesByConditions(ctx context.Context, o *M, clauses ...Clause) error
 	CountWithGroup(ctx context.Context, params models.QueryParams, groupBy string, clauses ...Clause) (map[string]int64, error)
 	UpdatesColumnsByConditions(ctx context.Context, columns map[string]interface{}, clauses ...Clause) error
 	ExecRaw(ctx context.Context, raw string) error
+	CountGroupByInt(ctx context.Context, groupBy string, clauses ...Clause) (map[int]int, error)
 }
 
 type baseRepository[M Model] struct {
 	model *M
 	db    *gorm.DB
+}
+
+func (b *baseRepository[M]) DeleteByID(ctx context.Context, id int) (int, error) {
+	var model M
+
+	result := b.db.WithContext(ctx).
+		Where("id = ?", id).
+		Delete(&model)
+
+	if result.Error != nil {
+		return 0, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return 0, errors.New("record not found")
+	}
+
+	return int(result.RowsAffected), nil
 }
 
 func (b *baseRepository[M]) GetAll(
@@ -240,4 +261,30 @@ func (b *baseRepository[M]) UpdatesColumnsByConditions(ctx context.Context, colu
 
 func (b *baseRepository[M]) ExecRaw(ctx context.Context, raw string) error {
 	return b.db.Exec(raw).Error
+}
+
+func (b *baseRepository[M]) CountGroupByInt(ctx context.Context, groupBy string, clauses ...Clause) (map[int]int, error) {
+	var results []struct {
+		GroupField int `gorm:"column:group_field"`
+		Count      int `gorm:"column:count"`
+	}
+
+	tx := b.db.Model(b.model)
+	for _, f := range clauses {
+		f(tx)
+	}
+
+	tx = tx.Select(groupBy + " as group_field, COUNT(*) as count").Group(groupBy)
+
+	err := tx.Find(&results).Error
+	if err != nil {
+		return nil, err
+	}
+
+	counts := make(map[int]int)
+	for _, result := range results {
+		counts[result.GroupField] = result.Count
+	}
+
+	return counts, nil
 }

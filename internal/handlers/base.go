@@ -28,6 +28,7 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 
 	admin := c.Group("/api/admin")
 	{
+		admin.POST("/upload", h.UploadImage())
 		admin.GET("/tables", h.GetTables())
 		admin.GET("/tables/:id", h.GetTableByID())
 		admin.POST("/tables", h.CreateTable())
@@ -37,11 +38,51 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		admin.GET("tables/:id/qr/download", h.DownloadQrCodeByTableId())
 		admin.GET("tables/qr/download-all", h.DownloadAllQrCode())
 		admin.GET("tables/:id/qr", h.GetQrCodeByTableId())
+
+		menuAdmin := admin.Group("/menu")
+		{
+			menuAdmin.GET("/categories", h.GetMenuCategories())
+			menuAdmin.GET("/categories/:id", h.GetMenuCategoryByID())
+			menuAdmin.POST("/categories", h.CreateMenuCategory())
+			menuAdmin.PUT("/categories/:id", h.UpdateMenuCategory())
+			menuAdmin.PATCH("/categories/:id/status", h.UpdateMenuCategoryStatus())
+
+			itemsAdmin := menuAdmin.Group("/items")
+			{
+				itemsAdmin.GET("", h.GetMenuItems())
+				itemsAdmin.GET("/:id", h.GetMenuItemByID())
+				itemsAdmin.POST("", h.CreateMenuItem())
+				itemsAdmin.PUT("/:id", h.UpdateMenuItem())
+				itemsAdmin.DELETE("/:id", h.DeleteMenuItem())
+			}
+
+			modifiersGroupAdmin := menuAdmin.Group("/modifier-groups")
+			{
+				modifiersGroupAdmin.GET("", h.GetModifierGroup())
+				modifiersGroupAdmin.POST("", h.CreatModifierGroup())
+				modifiersGroupAdmin.PUT("/:id", h.UpdateModifierGroup())
+				modifiersGroupAdmin.DELETE("/:id", h.DeleteModifierGroup())
+				modifiersGroupAdmin.POST("/:id/options", h.CreateModifierOptions())
+			}
+
+			modifiersOptionsAdmin := menuAdmin.Group("/modifier-options")
+			{
+				modifiersOptionsAdmin.PUT("/:id", h.UpdateModifierOptions())
+				modifiersOptionsAdmin.DELETE("/:id", h.DeleteModifierOptions())
+			}
+		}
 	}
 
 	menu := c.Group("/api/menu")
 	{
-		menu.GET("", h.loadMenu())
+		menu.GET("", h.LoadMenu())
+
+		menuItem := menu.Group("/items")
+		{
+			menuItem.GET("/:id", h.GetMenuItemByID())
+			menuItem.POST("/:id/modifier-groups", h.AssignMenuItemModifierGroup())
+			menuItem.DELETE("/:id/modifier-groups/:groupId", h.DeleteMenuItemModifierGroup())
+		}
 	}
 
 }
