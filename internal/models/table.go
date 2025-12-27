@@ -19,6 +19,7 @@ type TableParamsUri struct {
 type Table struct {
 	ID               int        `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
 	TableNumber      string     `json:"table_number" gorm:"column:table_number"`
+	RestaurantId     int        `json:"restaurant_id"`
 	Capacity         int        `json:"capacity" gorm:"column:capacity"`
 	Location         string     `json:"location" gorm:"column:location"`
 	Status           string     `json:"status" gorm:"column:status"`
@@ -36,6 +37,7 @@ type TableOrderData struct {
 
 type TableWithOrderData struct {
 	ID               int             `json:"id"`
+	RestaurantId     int             `json:"restaurant_id"`
 	TableNumber      string          `json:"table_number"`
 	Capacity         int             `json:"capacity"`
 	Location         string          `json:"location"`
