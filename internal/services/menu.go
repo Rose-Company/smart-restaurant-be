@@ -779,21 +779,66 @@ func (s *Service) UpdateMenuItem(ctx context.Context, id int, request *models.Up
 	return updated, nil
 }
 
-func (s *Service) GetMenuItemsByRestaurant(
-	ctx context.Context,
-	restaurantID int,
-) (*models.BaseListResponse, error) {
+func (s *Service) GetMenuItemsByRestaurant(ctx context.Context, restaurantID int, request *models.ListMenuRequest) (*models.BaseListResponse, error) {
+	page, pageSize := utils.GetPageAndPageSize(request.Page, request.PageSize)
 
-	menuItems, err := s.menuItemRepo.FindByRestaurantID(ctx, restaurantID)
+	filters := []repositories.Clause{
+		func(tx *gorm.DB) {
+			tx.Where("menu_items.restaurant_id = ?", restaurantID)
+		},
+	}
+
+	if request.Search != nil && *request.Search != "" {
+		search := "%" + strings.ToLower(*request.Search) + "%"
+		filters = append(filters, func(tx *gorm.DB) {
+			tx.Where("LOWER(menu_items.name) LIKE ?", search)
+		})
+	}
+
+	if request.Category != nil && *request.Category != "" && *request.Category != "all" {
+		categoryName := *request.Category
+		filters = append(filters, func(tx *gorm.DB) {
+			tx.Joins("LEFT JOIN menu_categories ON menu_items.category_id = menu_categories.id").
+				Where("LOWER(menu_categories.name) = ?", strings.ToLower(categoryName))
+		})
+	}
+
+	totalCount, err := s.menuItemRepo.Count(ctx, models.QueryParams{}, filters...)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(menuItems) == 0 {
+	if totalCount == 0 {
 		return &models.BaseListResponse{
-			Total: 0,
-			Items: []*models.MenuItemResponse{},
+			Total:    0,
+			Page:     page,
+			PageSize: pageSize,
+			Items:    []*models.MenuItemResponse{},
 		}, nil
+	}
+
+	queryParams := models.QueryParams{
+		Limit:  pageSize,
+		Offset: (page - 1) * pageSize,
+	}
+
+	sortMap := map[string]string{
+		"default":     "id.asc",
+		"name":        "name.asc",
+		"price_asc":   "price.asc",
+		"price_desc":  "price.desc",
+		"last_update": "updated_at.desc",
+	}
+
+	if sortOrder, ok := sortMap[request.Sort]; ok {
+		queryParams.QuerySort.Origin = sortOrder
+	} else {
+		queryParams.QuerySort.Origin = sortMap["default"]
+	}
+
+	menuItems, err := s.menuItemRepo.List(ctx, queryParams, filters...)
+	if err != nil {
+		return nil, err
 	}
 
 	categoryIDs := make([]int, 0, len(menuItems))
@@ -813,6 +858,7 @@ func (s *Service) GetMenuItemsByRestaurant(
 	if err != nil {
 		primaryImageMap = make(map[int]string)
 	}
+
 	statusMap := map[string]string{
 		"available":   "Available",
 		"unavailable": "Unavailable",
@@ -847,8 +893,10 @@ func (s *Service) GetMenuItemsByRestaurant(
 	}
 
 	return &models.BaseListResponse{
-		Total: len(responses),
-		Items: responses,
+		Total:    int(totalCount),
+		Page:     page,
+		PageSize: pageSize,
+		Items:    responses,
 	}, nil
 }
 
