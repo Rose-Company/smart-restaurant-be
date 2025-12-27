@@ -5,9 +5,9 @@ Load Menu API cho phép customer lấy menu thông qua QR code (table + token). 
 
 ---
 
-## Endpoint
+## Endpoints
 
-### Load Menu by Table QR Code
+### 1. Load Menu by Table QR Code
 **GET** `/api/menu`
 
 **Description:** Lấy menu cho một table cụ thể. Yêu cầu `table` ID và `token` từ QR code.
@@ -21,65 +21,140 @@ Load Menu API cho phép customer lấy menu thông qua QR code (table + token). 
 - `sort` (optional) - Sort field: `name`, `price_asc`, `price_desc`, `last_update` (default: id)
 - `category` (optional) - Filter by category name
 
+---
+
+### 2. Get Menu Item Details (Public)
+**GET** `/api/menu/items/:id`
+
+**Description:** Lấy chi tiết một menu item cụ thể bao gồm hình ảnh, mô tả, modifier groups, và tùy chọn của chúng.
+
+**URL Parameters:**
+- `id` (number, required): Menu item ID
+
 **Response (200 OK):**
 ```json
 {
   "code": 0,
-  "message": "",
+  "message": "success",
   "data": {
-    "total": 10,
-    "page": 1,
-    "page_size": 20,
-    "items": [
+    "id": 1,
+    "name": "Grilled Salmon",
+    "category": "Main Course",
+    "price": 24.99,
+    "status": "Available",
+    "last_update": "2025-12-25",
+    "chef_recommended": true,
+    "description": "Fresh Atlantic salmon grilled to perfection with herbs",
+    "preparation_time": 15,
+    "image_url": "https://smart-restaurant.sfo3.digitaloceanspaces.com/menu-items/uuid.jpg",
+    "images": [
+      {
+        "id": "1",
+        "url": "https://smart-restaurant.sfo3.digitaloceanspaces.com/menu-items/uuid1.jpg",
+        "is_primary": true
+      },
+      {
+        "id": "2",
+        "url": "https://smart-restaurant.sfo3.digitaloceanspaces.com/menu-items/uuid2.jpg",
+        "is_primary": false
+      }
+    ],
+    "modifiers": [
       {
         "id": 1,
-        "name": "Grilled Salmon",
-        "category": "Main Course",
-        "price": 24.99,
-        "status": "Available",
-        "last_update": "2025-12-25",
-        "chef_recommended": true,
-        "image_url": "https://smart-restaurant.sfo3.digitaloceanspaces.com/menu-items/uuid.jpg",
-        "description": "Fresh Atlantic salmon grilled to perfection with herbs",
-        "preparation_time": 15
+        "name": "Size",
+        "selection_type": "single",
+        "is_required": true,
+        "options": [
+          {
+            "id": 10,
+            "name": "Small (10\")",
+            "price_adjustment": 0
+          },
+          {
+            "id": 11,
+            "name": "Medium (12\")",
+            "price_adjustment": 2.50
+          },
+          {
+            "id": 12,
+            "name": "Large (14\")",
+            "price_adjustment": 5.00
+          }
+        ]
       },
       {
         "id": 2,
-        "name": "Caesar Salad",
-        "category": "Appetizers",
-        "price": 12.99,
-        "status": "Available",
-        "last_update": "2025-12-25",
-        "chef_recommended": false,
-        "image_url": "https://smart-restaurant.sfo3.digitaloceanspaces.com/menu-items/uuid.jpg",
-        "description": "Fresh romaine with parmesan and croutons",
-        "preparation_time": 10
+        "name": "Extra Toppings",
+        "selection_type": "multiple",
+        "is_required": false,
+        "options": [
+          {
+            "id": 20,
+            "name": "Cheese",
+            "price_adjustment": 1.50
+          },
+          {
+            "id": 21,
+            "name": "Bacon",
+            "price_adjustment": 2.00
+          }
+        ]
       }
     ]
   }
 }
 ```
 
-**Error Response (400 Bad Request - Missing Parameters):**
+---
+
+### 3. Assign Modifier Group to Cart Item (Add to Order)
+**POST** `/api/menu/items/:id/modifier-groups`
+
+**Description:** Gán modifier group vào menu item khi thêm vào giỏ hàng. Không là thao tác admin, là phần của customer order flow.
+
+**URL Parameters:**
+- `id` (number, required): Menu item ID
+
+**Request Body:**
 ```json
 {
-  "menu": false,
-  "error": "table and token required"
+  "menu_item_id": 1,
+  "group_id": 1
 }
 ```
 
-**Error Response (400 Bad Request - Invalid Table ID):**
+**Response (200 OK):**
 ```json
 {
-  "menu": false,
-  "error": "invalid table id"
+  "code": 0,
+  "message": "success",
+  "data": {
+    "id": 100,
+    "menu_item_id": 1,
+    "group_id": 1,
+    "created_at": "2025-12-27T10:30:00Z"
+  }
 }
 ```
 
-**Error Response (403 Forbidden - Invalid or Expired Token):**
+---
+
+### 4. Remove Modifier Group from Cart Item
+**DELETE** `/api/menu/items/:id/modifier-groups/:groupId`
+
+**Description:** Xóa modifier group khỏi menu item trong giỏ hàng.
+
+**URL Parameters:**
+- `id` (number, required): Menu item ID
+- `groupId` (number, required): Modifier group ID
+
+**Response (200 OK):**
 ```json
 {
-  "menu": false
+  "code": 0,
+  "message": "success",
+  "data": "Modifier Group deleted successfully"
 }
 ```
 
@@ -87,7 +162,7 @@ Load Menu API cho phép customer lấy menu thông qua QR code (table + token). 
 
 ## Example Usage
 
-### Basic Request - Get Menu for Table
+### 1. Basic Request - Get Menu for Table
 ```bash
 # Get menu for table 5 with valid token
 curl -X GET "http://localhost:8080/api/menu?table=5&token=abc123xyz" \
@@ -96,6 +171,35 @@ curl -X GET "http://localhost:8080/api/menu?table=5&token=abc123xyz" \
 # Pretty print
 curl -s -X GET "http://localhost:8080/api/menu?table=5&token=abc123xyz" | jq '.'
 ```
+
+### 2. Get Menu Item Details
+```bash
+# Get full details of menu item ID 1 (includes images and modifier groups)
+curl -X GET "http://localhost:8080/api/menu/items/1" \
+  -H "Content-Type: application/json"
+```
+
+### 3. Assign Modifier Group to Item
+```bash
+# Add Size modifier group to item when building order
+curl -X POST "http://localhost:8080/api/menu/items/1/modifier-groups" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "menu_item_id": 1,
+    "group_id": 1
+  }'
+```
+
+### 4. Remove Modifier Group from Item
+```bash
+# Remove Size modifier group from item
+curl -X DELETE "http://localhost:8080/api/menu/items/1/modifier-groups/1" \
+  -H "Content-Type: application/json"
+```
+
+---
+
+## Load Menu - Advanced Examples
 
 ### With Pagination
 ```bash
