@@ -38,8 +38,14 @@ func (h *Handler) LoadMenu() gin.HandlerFunc {
 			return
 		}
 
+		var params models.ListMenuRequest
+		if err := c.ShouldBindQuery(&params); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
 		restaurantId := table.RestaurantId
-		menuItemsResponse, err := h.service.GetMenuItemsByRestaurant(c, restaurantId)
+		menuItemsResponse, err := h.service.GetMenuItemsByRestaurant(c, restaurantId, &params)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{
 				"message": err.Error(),

@@ -41,6 +41,12 @@ type ListMenuCategoryRequest struct {
 	Status *string `form:"status"`
 }
 
+type ListMenuRequest struct {
+	BaseRequestParamsUri
+	Search   *string `form:"search"`
+	Category *string `form:"category"`
+}
+
 type MenuCategoryParamsUri struct {
 	ID int `uri:"id" binding:"required,min=1"`
 }
