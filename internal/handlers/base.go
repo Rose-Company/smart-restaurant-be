@@ -55,12 +55,34 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 				itemsAdmin.PUT("/:id", h.UpdateMenuItem())
 				itemsAdmin.DELETE("/:id", h.DeleteMenuItem())
 			}
+
+			modifiersGroupAdmin := menuAdmin.Group("/modifier-groups")
+			{
+				modifiersGroupAdmin.GET("", h.GetModifierGroup())
+				modifiersGroupAdmin.POST("", h.CreatModifierGroup())
+				modifiersGroupAdmin.PUT("/:id", h.UpdateModifierGroup())
+				modifiersGroupAdmin.DELETE("/:id", h.DeleteModifierGroup())
+				modifiersGroupAdmin.POST("/:id/options", h.CreateModifierOptions())
+			}
+
+			modifiersOptionsAdmin := menuAdmin.Group("/modifier-options")
+			{
+				modifiersOptionsAdmin.PUT("/:id", h.UpdateModifierOptions())
+				modifiersOptionsAdmin.DELETE("/:id", h.DeleteModifierOptions())
+			}
 		}
 	}
 
 	menu := c.Group("/api/menu")
 	{
 		menu.GET("", h.LoadMenu())
+
+		menuItem := menu.Group("/items")
+		{
+			menuItem.GET("/:id", h.GetMenuItemByID())
+			menuItem.POST("/:id/modifier-groups", h.AssignMenuItemModifierGroup())
+			menuItem.DELETE("/:id/modifier-groups/:groupId", h.DeleteMenuItemModifierGroup())
+		}
 	}
 
 }

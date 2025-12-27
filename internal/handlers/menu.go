@@ -38,7 +38,15 @@ func (h *Handler) LoadMenu() gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, gin.H{"menu": true})
+		restaurantId := table.RestaurantId
+		menuItemsResponse, err := h.service.GetMenuItemsByRestaurant(c, restaurantId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"message": err.Error(),
+			})
+			return
+		}
+		c.JSON(http.StatusOK, menuItemsResponse)
 	}
 }
 
@@ -279,5 +287,41 @@ func (h *Handler) UploadImage() gin.HandlerFunc {
 		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(gin.H{
 			"url": fileURL,
 		}))
+	}
+}
+
+func (h *Handler) AssignMenuItemModifierGroup() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var request models.AssignModifierToMenuItemRequest
+		if err := c.ShouldBindJSON(&request); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		data, err := h.service.AssignMenuItemModifierGroup(c, &request)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(data))
+	}
+}
+
+func (h *Handler) DeleteMenuItemModifierGroup() gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		var uri models.DeleteMenuItemModifierGroupUri
+		if err := c.ShouldBindUri(&uri); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		if err := h.service.DeleteMenuItemModifierGroup(c.Request.Context(), uri.MenuItemID, uri.GroupID); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(nil))
 	}
 }

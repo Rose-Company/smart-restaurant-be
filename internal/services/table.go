@@ -155,6 +155,7 @@ func (s *Service) GetTableByID(ctx context.Context, id int) (*models.TableWithOr
 
 	response := &models.TableWithOrderData{
 		ID:               table.ID,
+		RestaurantId:     table.RestaurantId,
 		TableNumber:      table.TableNumber,
 		Capacity:         table.Capacity,
 		Location:         table.Location,

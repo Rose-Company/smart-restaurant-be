@@ -779,6 +779,79 @@ func (s *Service) UpdateMenuItem(ctx context.Context, id int, request *models.Up
 	return updated, nil
 }
 
+func (s *Service) GetMenuItemsByRestaurant(
+	ctx context.Context,
+	restaurantID int,
+) (*models.BaseListResponse, error) {
+
+	menuItems, err := s.menuItemRepo.FindByRestaurantID(ctx, restaurantID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(menuItems) == 0 {
+		return &models.BaseListResponse{
+			Total: 0,
+			Items: []*models.MenuItemResponse{},
+		}, nil
+	}
+
+	categoryIDs := make([]int, 0, len(menuItems))
+	itemIDs := make([]int, 0, len(menuItems))
+
+	for _, item := range menuItems {
+		categoryIDs = append(categoryIDs, item.CategoryID)
+		itemIDs = append(itemIDs, item.ID)
+	}
+
+	categoryMap, err := s.getCategoryMapByIDs(ctx, categoryIDs)
+	if err != nil {
+		categoryMap = make(map[int]string)
+	}
+
+	primaryImageMap, err := s.getPrimaryImageMap(ctx, itemIDs)
+	if err != nil {
+		primaryImageMap = make(map[int]string)
+	}
+	statusMap := map[string]string{
+		"available":   "Available",
+		"unavailable": "Unavailable",
+		"sold_out":    "Sold Out",
+	}
+
+	responses := make([]*models.MenuItemResponse, 0, len(menuItems))
+
+	for _, menuItem := range menuItems {
+		displayStatus := statusMap[menuItem.Status]
+		if displayStatus == "" {
+			displayStatus = menuItem.Status
+		}
+
+		lastUpdate := ""
+		if menuItem.UpdatedAt != nil {
+			lastUpdate = menuItem.UpdatedAt.Format("2006-01-02")
+		}
+
+		responses = append(responses, &models.MenuItemResponse{
+			ID:              menuItem.ID,
+			Name:            menuItem.Name,
+			Category:        categoryMap[menuItem.CategoryID],
+			Price:           menuItem.Price,
+			Status:          displayStatus,
+			LastUpdate:      lastUpdate,
+			ChefRecommended: menuItem.IsChefRecommended,
+			ImageURL:        primaryImageMap[menuItem.ID],
+			Description:     menuItem.Description,
+			PreparationTime: menuItem.PrepTimeMinutes,
+		})
+	}
+
+	return &models.BaseListResponse{
+		Total: len(responses),
+		Items: responses,
+	}, nil
+}
+
 func (s *Service) DeleteMenuItem(ctx context.Context, id int) error {
 	filters := []repositories.Clause{
 		func(tx *gorm.DB) {
@@ -797,4 +870,42 @@ func (s *Service) DeleteMenuItem(ctx context.Context, id int) error {
 
 	_, err = s.menuItemRepo.UpdateColumns(ctx, id, columns)
 	return err
+}
+
+func (s *Service) AssignMenuItemModifierGroup(
+	ctx context.Context,
+	request *models.AssignModifierToMenuItemRequest,
+) (*models.MenuItemModifierGroup, error) {
+
+	existing, err := s.menuItemModifierGroupRepo.
+		FindByMenuItemIDAndGroupID(ctx, request.MenuItemID, request.GroupID)
+	if err != nil {
+		return nil, err
+	}
+
+	if existing != nil {
+		return existing, nil
+	}
+
+	menuItemModifierGroup := &models.MenuItemModifierGroup{
+		MenuItemID: request.MenuItemID,
+		GroupID:    request.GroupID,
+	}
+
+	created, err := s.menuItemModifierGroupRepo.Create(ctx, menuItemModifierGroup)
+	if err != nil {
+		return nil, err
+	}
+
+	return created, nil
+}
+
+func (s *Service) DeleteMenuItemModifierGroup(
+	ctx context.Context,
+	menuItemID int,
+	groupID int,
+) error {
+
+	return s.menuItemModifierGroupRepo.
+		DeleteByMenuItemIDAndGroupID(ctx, menuItemID, groupID)
 }

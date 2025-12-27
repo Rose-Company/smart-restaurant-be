@@ -105,3 +105,8 @@ type AssignModifierToMenuItemRequest struct {
 	MenuItemID int `json:"menu_item_id" binding:"required"`
 	GroupID    int `json:"group_id" binding:"required"`
 }
+
+type DeleteMenuItemModifierGroupUri struct {
+	MenuItemID int `uri:"id" binding:"required,min=1"`
+	GroupID    int `uri:"groupId" binding:"required,min=1"`
+}
