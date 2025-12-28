@@ -158,6 +158,24 @@ func (h *Handler) UpdateMenuCategoryStatus() gin.HandlerFunc {
 	}
 }
 
+func (h *Handler) DeleteMenuCategory() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var params models.CategoryMenuIDParamsUri
+		if err := c.ShouldBindUri(&params); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		err := h.service.DeleteMenuCategory(c, params.ID)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(gin.H{"message": "Menu item deleted successfully"}))
+	}
+}
+
 func (h *Handler) GetMenuItems() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var params models.ListMenuItemRequest

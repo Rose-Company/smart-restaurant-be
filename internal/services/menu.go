@@ -920,6 +920,26 @@ func (s *Service) DeleteMenuItem(ctx context.Context, id int) error {
 	return err
 }
 
+func (s *Service) DeleteMenuCategory(ctx context.Context, id int) error {
+	filters := []repositories.Clause{
+		func(tx *gorm.DB) {
+			tx.Where("id = ?", id)
+		},
+	}
+
+	_, err := s.menuCategoryRepo.GetDetailByConditions(ctx, filters...)
+	if err != nil {
+		return err
+	}
+
+	columns := map[string]interface{}{
+		"status": "inactive",
+	}
+
+	_, err = s.menuCategoryRepo.UpdateColumns(ctx, id, columns)
+	return err
+}
+
 func (s *Service) AssignMenuItemModifierGroup(
 	ctx context.Context,
 	request *models.AssignModifierToMenuItemRequest,

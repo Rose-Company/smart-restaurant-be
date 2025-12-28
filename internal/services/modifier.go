@@ -184,13 +184,24 @@ func (s *Service) UpdateModifierGroup(ctx context.Context, id int, request *mode
 }
 
 func (s *Service) DeleteModifierGroup(ctx context.Context, id int) error {
-	rows, err := s.modifierGroupRepo.DeleteByID(ctx, id)
+	filters := []repositories.Clause{
+		func(tx *gorm.DB) {
+			tx.Where("id = ?", id)
+		},
+	}
+
+	_, err := s.modifierGroupRepo.GetDetailByConditions(ctx, filters...)
 	if err != nil {
 		return err
 	}
 
-	if rows == 0 {
-		return errors.New("modifier group not found")
+	columns := map[string]interface{}{
+		"status": "inactive",
+	}
+
+	_, err = s.modifierGroupRepo.UpdateColumns(ctx, id, columns)
+	if err != nil {
+		return err
 	}
 
 	return nil
