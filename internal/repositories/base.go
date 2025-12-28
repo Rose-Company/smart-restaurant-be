@@ -26,6 +26,7 @@ type BaseRepository[M Model] interface {
 	GetByIDSelected(ctx context.Context, id interface{}, fields []string) (data *M, err error)
 	GetIDsByConditions(ctx context.Context, clauses ...Clause) ([]int, error)
 	GetDetailByConditions(ctx context.Context, clauses ...Clause) (*M, error)
+	ListByConditions(ctx context.Context, clauses ...Clause) ([]*M, error)
 	Delete(ctx context.Context, clauses ...Clause) error
 	DeleteByID(ctx context.Context, id int) (int, error)
 	CreatesMultiple(ctx context.Context, o []*M) error
@@ -39,6 +40,21 @@ type BaseRepository[M Model] interface {
 type baseRepository[M Model] struct {
 	model *M
 	db    *gorm.DB
+}
+
+func (b *baseRepository[M]) ListByConditions(
+	ctx context.Context,
+	clauses ...Clause,
+) ([]*M, error) {
+	var items []*M
+	tx := b.db.WithContext(ctx).Model(b.model)
+	for _, f := range clauses {
+		f(tx)
+	}
+	if err := tx.Find(&items).Error; err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 func (b *baseRepository[M]) DeleteByID(ctx context.Context, id int) (int, error) {

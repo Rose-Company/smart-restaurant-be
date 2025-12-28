@@ -75,11 +75,47 @@ func (s *Service) GetModifierGroup(ctx context.Context, request *models.ListModi
 		modifierGroupIDs = append(modifierGroupIDs, modifierGroup.ID)
 	}
 
-	items := make([]*models.ModifierGroup, 0, len(modifierGroups))
-	for _, modifierGroup := range modifierGroups {
-		item := modifierGroup
+	modifierOptionFilters := []repositories.Clause{
+		func(tx *gorm.DB) {
+			tx.Where("group_id IN ?", modifierGroupIDs)
+		},
+	}
 
-		items = append(items, item)
+	modifierOptions, err := s.modifierOptionRepo.ListByConditions(
+		ctx,
+		modifierOptionFilters...,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	optionsMap := make(map[int][]*models.ModifierOption)
+	for _, opt := range modifierOptions {
+		optionsMap[opt.GroupID] = append(optionsMap[opt.GroupID], opt)
+	}
+
+	items := make([]*models.ModifierGroupResponse, 0, len(modifierGroups))
+
+	for _, g := range modifierGroups {
+		opts := optionsMap[g.ID]
+		if opts == nil {
+			opts = []*models.ModifierOption{}
+		}
+
+		items = append(items, &models.ModifierGroupResponse{
+			ID:            g.ID,
+			RestaurantID:  g.RestaurantID,
+			Name:          g.Name,
+			SelectionType: g.SelectionType,
+			IsRequired:    g.IsRequired,
+			MinSelections: g.MinSelections,
+			MaxSelections: g.MaxSelections,
+			DisplayOrder:  g.DisplayOrder,
+			Status:        g.Status,
+			Options:       opts,
+			CreatedAt:     g.CreatedAt,
+			UpdatedAt:     g.UpdatedAt,
+		})
 	}
 
 	return &models.BaseListResponse{
