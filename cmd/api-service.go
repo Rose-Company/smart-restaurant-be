@@ -30,7 +30,7 @@ var restApiServiceCmd = &cobra.Command{
 		start, _ := cmd.Flags().GetBool("start")
 
 		if start {
-			svr := server.NewServer("SupplierLoyaltyService", 8081)
+			svr := server.NewServer("SupplierLoyaltyService", 8080)
 			restHdl := rest_api_service.RestHandler(svr)
 			err, postgres := postgres3.NewMainPostgres(common.PREFIX_MAIN_POSTGRES)
 			if err != nil {
