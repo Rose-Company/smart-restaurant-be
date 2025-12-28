@@ -136,6 +136,10 @@ type MenuItemIDParamsUri struct {
 	ID int `uri:"id" binding:"required,min=1"`
 }
 
+type CategoryMenuIDParamsUri struct {
+	ID int `uri:"id" binding:"required,min=1"`
+}
+
 type MenuItemResponse struct {
 	ID              int     `json:"id"`
 	Name            string  `json:"name"`

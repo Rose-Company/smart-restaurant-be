@@ -46,6 +46,7 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 			menuAdmin.POST("/categories", h.CreateMenuCategory())
 			menuAdmin.PUT("/categories/:id", h.UpdateMenuCategory())
 			menuAdmin.PATCH("/categories/:id/status", h.UpdateMenuCategoryStatus())
+			menuAdmin.DELETE("/categories/:id", h.DeleteMenuCategory())
 
 			itemsAdmin := menuAdmin.Group("/items")
 			{
