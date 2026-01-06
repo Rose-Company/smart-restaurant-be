@@ -44,6 +44,11 @@ type Schema struct {
 		IdleConnectionTimeout int `mapstructure:"idle_connection_timeout"`
 	} `mapstructure:"http"`
 
+	Mail struct {
+		ApiKey    string `mapstructure:"api_key"`
+		FromEmail string `mapstructure:"from_email"`
+	} `mapstructure:"mail"`
+
 	JwtSecret        string `mapstructure:"jwt_secret"`
 	TokenExpiredTime int64  `mapstructure:"token_expired_time"`
 }

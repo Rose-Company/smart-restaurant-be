@@ -20,6 +20,10 @@ type Service struct {
 	modifierGroupRepo         *repositories.ModifierGroupRepo
 	modifierOptionRepo        *repositories.ModifierOptionRepo
 	menuItemModifierGroupRepo *repositories.MenuItemModifierGroupRepo
+	userRepo                  *repositories.UserRepo
+	otpRepo                   *repositories.OTPRepo
+	otpAttemptRepo            *repositories.OTPAttemptRepo
+	roleRepo                  *repositories.RoleRepo
 }
 
 func NewService(sc server.ServerContext) *Service {
@@ -35,5 +39,9 @@ func NewService(sc server.ServerContext) *Service {
 		modifierGroupRepo:         repositories.NewModifierGroupRepository(db),
 		modifierOptionRepo:        repositories.NewModifierOptionRepository(db),
 		menuItemModifierGroupRepo: repositories.NewMenuItemModifierGroupRepository(db),
+		userRepo:                  repositories.NewUserRepository(db),
+		otpRepo:                   repositories.NewOTPRepository(db),
+		otpAttemptRepo:            repositories.NewOTPAttemptRepository(db),
+		roleRepo:                  repositories.NewRoleRepository(db),
 	}
 }

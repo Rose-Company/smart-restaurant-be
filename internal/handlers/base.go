@@ -26,6 +26,21 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 	// authConfig := h.sc.GetAuthConfig()
 	// authenticator := middleware.NewAuthenticator(authConfig)
 
+	userRoutes := c.Group("/api/user")
+	{
+		userRoutes.POST("/signup", h.SignUp)
+		userRoutes.POST("/login", h.LogIn)
+	}
+
+	authRoutes := c.Group("/api/auth")
+	{
+		authRoutes.POST("/request-signup-otp", h.RequestSignupOTP)
+		authRoutes.POST("/validate-signup-otp", h.ValidateSignupOTP)
+		authRoutes.POST("/request-reset-password", h.RequestResetPassword)
+		authRoutes.POST("/validate-otp", h.ValidateOTP)
+		authRoutes.POST("/reset-password", h.ResetPassword)
+	}
+
 	admin := c.Group("/api/admin")
 	{
 		admin.POST("/upload", h.UploadImage())
