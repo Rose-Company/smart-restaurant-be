@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -310,4 +311,28 @@ func JoinStrings(parts []string, separator string) string {
 		result += separator + parts[i]
 	}
 	return result
+}
+
+func GenerateRandomOTP() string {
+	rand.Seed(time.Now().UnixNano())
+	otp := rand.Intn(999999-100000+1) + 100000
+	return fmt.Sprintf("%06d", otp)
+}
+
+func NormalizeToBangkokTimezone(t time.Time) (time.Time, error) {
+	loc, err := time.LoadLocation("Asia/Bangkok")
+	if err != nil {
+		return t, err
+	}
+	return t.In(loc), nil
+}
+
+func GenerateShortUUID() (string, error) {
+	u, err := uuid.NewRandom()
+	if err != nil {
+		return "", err
+	}
+
+	encoded := base64.RawURLEncoding.EncodeToString(u[:])
+	return encoded, nil
 }
