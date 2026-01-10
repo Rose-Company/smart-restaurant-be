@@ -27,6 +27,10 @@ http:
   max_idle_connection: 10
   idle_connection_timeout: 30
 
+mail:
+  api_key:
+  from_email:
+
 jwt_secret:
 token_expired_time: 604800000
 
