@@ -2,6 +2,32 @@
 
 ---
 
+curl --location 'http://localhost:8080/api/auth/request-signup-otp' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email": "mnnhnd01@gmail.com"
+}'
+
+
+curl --location 'http://localhost:8080/api/auth/validate-signup-otp' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email": "mnnhnd01@gmail.com",
+    "otp": "351719"
+}'
+
+curl --location 'http://164.90.145.135:8080/api/user/signup' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "email": "mnnhnd01@gmail.com",
+    "first_name": "Mai Nhat",
+    "last_name": "Nam",
+    "password": "Nam22102004@@",
+    "role": "end_user",
+    "verify_token": "bk33aSEYR6iPdWuLSnQ20Q"
+}'
+
+
 ## 1. POST /api/user/signup - User Registration
 
 **Request:**
@@ -14,6 +40,7 @@ curl -X POST "http://localhost:8080/api/user/signup" \
     "last_name": "Doe",
     "password": "Password123!",
     "role": "end_user"
+    "verify_token": "bk33aSEYR6iPdWuLSnQ20Q",
   }'
 ```
 
