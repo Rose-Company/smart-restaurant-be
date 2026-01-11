@@ -71,13 +71,11 @@ This document provides a comprehensive overview of the complete database schema 
 |--------|------|-------------|-------------|
 | id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Role ID |
 | name | VARCHAR(50) | NOT NULL, UNIQUE | Role name (end_user, admin, waiter, kitchen_staff) |
-| display_name | VARCHAR(100) | | Human-readable name |
 | description | TEXT | | Role description |
-| permissions | JSONB | | Legacy permissions field |
-| is_staff | BOOLEAN | DEFAULT FALSE | Is staff role |
-| is_active | BOOLEAN | DEFAULT TRUE | Is active |
 | created_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Creation timestamp |
 | updated_at | TIMESTAMP | DEFAULT CURRENT_TIMESTAMP | Last update timestamp |
+
+**Note:** Role permissions are managed via the existing `action_control_list` table.
 
 ---
 
@@ -858,7 +856,7 @@ This document provides a comprehensive overview of the complete database schema 
 
 ---
 
-## 6. ANALYTICS & REPORTS
+## 6. ANALYTICS & REPORTS (bypass)
 
 **Migration:** `009_create_analytics_reports.sql`
 
@@ -1005,10 +1003,10 @@ This document provides a comprehensive overview of the complete database schema 
        │                         │
        │                         └──► discount_usage ──► discount_codes
        │
-       └──────► daily_revenue_snapshots
-                hourly_revenue_breakdown
-                item_sales_statistics
-                category_sales_statistics
+       └──────► daily_revenue_snapshots (pass)
+                hourly_revenue_breakdown (pass)
+                item_sales_statistic (pass)
+                category_sales_statistics (pass)
 
 ┌──────────┐
 │  roles   │──► action_control_list (existing RBAC table)
@@ -1050,75 +1048,3 @@ This document provides a comprehensive overview of the complete database schema 
 
 ---
 
-## 9. VIEWS SUMMARY
-
-### 9.1 `customer_statistics`
-**Purpose:** Aggregated customer metrics  
-**Fields:** total_orders, total_spent, average_order_value, loyalty_points, favorite_items
-
-### 9.2 `staff_statistics`
-**Purpose:** Aggregated staff performance  
-**Fields:** total_orders_served/prepared, revenue_generated, assigned_tables, average_rating
-
-### 9.3 `dashboard_summary`
-**Purpose:** Real-time admin dashboard  
-**Fields:** revenue_today, orders_today, active_orders, tables_occupied, growth_rate
-
-### 9.4 `kitchen_dashboard`
-**Purpose:** Real-time kitchen queue  
-**Fields:** pending/preparing/ready counts, average_prep_time, longest_waiting_order
-
-### 9.5 `waiter_dashboard`
-**Purpose:** Per-waiter dashboard  
-**Fields:** orders_served_today, revenue_generated, active_orders, assigned_tables
-
----
-
-## 10. TRIGGERS & FUNCTIONS
-
-### Auto-Update Timestamps
-- `update_updated_at_column()` - Updates `updated_at` on row modification
-- Applied to: orders, order_items, bills, payments, users, profiles, etc.
-
-### Auto-Create Profiles
-- `create_customer_profile()` - Creates preferences + loyalty on user registration
-- `create_staff_profile()` - Creates staff profile on staff user creation
-
-### Loyalty System
-- `update_loyalty_tier()` - Auto-updates tier based on points
-- `award_loyalty_points()` - Awards points on order completion (1 point per $1)
-
-### Activity Logging
-- `log_staff_login()` - Logs staff login events
-
-### Daily Snapshots
-- `calculate_daily_revenue_snapshot(date, restaurant_id)` - Manual/cron function to calculate daily revenue
-
----
-
-## 📊 SUMMARY STATISTICS
-
-| Category | Tables | New Tables | Indexes | Views | Triggers |
-|----------|--------|------------|---------|-------|----------|
-| Core | 12 | 0 | ~20 | 0 | 2 |
-| Orders | 6 | 4 | ~18 | 0 | 2 |
-| Bills & Payments | 4 | 4 | ~12 | 0 | 2 |
-| Customer Profile | 7 | 7 | ~15 | 1 | 3 |
-| Staff Management | 4 | 4 | ~9 | 1 | 2 |
-| Analytics | 4 | 4 | ~8 | 3 | 3 |
-| **TOTAL** | **37** | **23** | **~82** | **5** | **14** |
-
----
-
-## 🎯 NEXT STEPS
-
-1. **Run Migrations:** Execute migrations 006-009 in order
-2. **Test Data:** Create seed data for testing
-3. **API Development:** Implement backend handlers using these schemas
-4. **Frontend Integration:** Connect APIs to React components
-5. **Performance Testing:** Monitor query performance and optimize indexes
-
----
-
-**Last Updated:** January 11, 2026  
-**Author:** Smart Restaurant Development Team
