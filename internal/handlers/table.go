@@ -131,16 +131,12 @@ func (h *Handler) GetQrCodeByTableId() gin.HandlerFunc {
 		qrCodeInfo, err := h.service.GetQrCodeByTableID(c, id)
 		if err != nil {
 			common.AbortWithError(c, err)
+			return
 		}
 
-		url := fmt.Sprintf(
-			"https://smart-restaurant-fe.vercel.app/menu?table=%d&token=%s",
-			id,
-			qrCodeInfo.Token,
-		)
-
 		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(gin.H{
-			"url":       url,
+			"table_id":  id,
+			"token":     qrCodeInfo.Token,
 			"create_at": qrCodeInfo.CreatedAt,
 			"expire_at": qrCodeInfo.ExpiresAt,
 		}))

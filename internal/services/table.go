@@ -270,8 +270,9 @@ func (s *Service) GenerateQrCodeByTableId(ctx context.Context, tableId int) (*mo
 	}
 
 	return &models.QrCodeData{
-		TableID: table.ID,
-		Token:   token,
+		TableID:   table.ID,
+		Token:     token,
+		CreatedAt: &now,
 	}, nil
 }
 
