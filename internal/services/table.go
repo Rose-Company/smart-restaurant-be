@@ -273,6 +273,7 @@ func (s *Service) GenerateQrCodeByTableId(ctx context.Context, tableId int) (*mo
 		TableID:   table.ID,
 		Token:     token,
 		CreatedAt: &now,
+		ExpiresAt: &expiredAt,
 	}, nil
 }
 
