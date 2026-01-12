@@ -156,15 +156,13 @@ func (h *Handler) GenerateQrCodeByTableId() gin.HandlerFunc {
 			return
 		}
 
-		url, err := h.service.GenerateQrCodeByTableId(c, id)
+		data, err := h.service.GenerateQrCodeByTableId(c, id)
 		if err != nil {
 			common.AbortWithError(c, err)
 			return
 		}
 
-		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(gin.H{
-			"url": url,
-		}))
+		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(data))
 	}
 }
 

@@ -70,6 +70,11 @@ type GenerateQrCodeRequest struct {
 	TableNumber string `json:"table_number" binding:"required"`
 }
 
+type QrCodeData struct {
+	TableID int    `json:"table_id"`
+	Token   string `json:"token"`
+}
+
 type GenerateQrCodeResponse struct {
 	Url string `json:"url"`
 }

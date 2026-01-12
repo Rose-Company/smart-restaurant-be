@@ -8,7 +8,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -247,15 +246,15 @@ func (s *Service) UpdateTableStatus(ctx context.Context, id int, request *models
 	return updated, nil
 }
 
-func (s *Service) GenerateQrCodeByTableId(ctx context.Context, tableId int) (string, error) {
+func (s *Service) GenerateQrCodeByTableId(ctx context.Context, tableId int) (*models.QrCodeData, error) {
 	table, err := s.tableRepo.GetByID(ctx, tableId)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	token, err := generateSecureToken(32)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	now := time.Now()
@@ -267,16 +266,13 @@ func (s *Service) GenerateQrCodeByTableId(ctx context.Context, tableId int) (str
 
 	_, err = s.tableRepo.Update(ctx, table.ID, table)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	url := fmt.Sprintf(
-		"https://smart-restaurant-fe.vercel.app/menu?table=%d&token=%s",
-		table.ID,
-		token,
-	)
-
-	return url, nil
+	return &models.QrCodeData{
+		TableID: table.ID,
+		Token:   token,
+	}, nil
 }
 
 func generateSecureToken(n int) (string, error) {
