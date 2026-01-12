@@ -2,6 +2,7 @@ package handlers
 
 import (
 	services "app-noti/internal/services"
+	"app-noti/middleware"
 	l "app-noti/pkg/logger"
 	"app-noti/server"
 
@@ -99,6 +100,21 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 			menuItem.POST("/:id/modifier-groups", h.AssignMenuItemModifierGroup())
 			menuItem.DELETE("/:id/modifier-groups/:groupId", h.DeleteMenuItemModifierGroup())
 		}
+	}
+
+	// Order Management APIs (TASK-001 to TASK-009)
+	// Using optional authentication - guests can order via QR code, logged-in users get personalized experience
+	orders := c.Group("/api/orders")
+	{
+		orders.POST("", middleware.OptionalUserAuthentication(), h.CreateOrder)                                     // TASK-001: Create order
+		orders.GET("", middleware.OptionalUserAuthentication(), h.GetOrders)                                        // TASK-002: Get orders list
+		orders.GET("/:id", middleware.OptionalUserAuthentication(), h.GetOrderByID)                                 // TASK-003: Get order details
+		orders.PATCH("/:id/status", middleware.OptionalUserAuthentication(), h.UpdateOrderStatus)                   // TASK-004: Update order status
+		orders.PATCH("/:id/items/:itemId/status", middleware.OptionalUserAuthentication(), h.UpdateOrderItemStatus) // TASK-005: Update item status
+		orders.PATCH("/:id", middleware.OptionalUserAuthentication(), h.UpdateOrder)                                // TASK-006: Add notes/metadata
+		orders.POST("/:id/cancel", middleware.OptionalUserAuthentication(), h.CancelOrder)                          // TASK-007: Cancel order
+		orders.POST("/:id/alert", middleware.OptionalUserAuthentication(), h.SendKitchenAlert)                      // TASK-008: Send kitchen alert
+		orders.POST("/:id/review", middleware.OptionalUserAuthentication(), h.CreateOrderReview)                    // TASK-009: Submit review
 	}
 
 }

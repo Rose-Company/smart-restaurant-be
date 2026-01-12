@@ -60,6 +60,7 @@ var (
 	ErrActionNotAllowed  = errors.New("action_not_allowed")
 	ErrTokenNotFound     = errors.New("token_not_found")
 	ErrNotAuthorized     = errors.New("not_authorized")
+	ErrUnauthorized      = errors.New("not_authorized")
 
 	// Authentication errors
 	ErrInvalidInput                  = errors.New("invalid_input")
@@ -76,6 +77,12 @@ var (
 	ErrOTPNotVerified                = errors.New("otp_not_verified")
 	ErrOTPAlreadyVerified            = errors.New("otp_already_verified")
 	ErrInvalidVerifyToken            = errors.New("invalid_verify_token")
+
+	// Order/Restaurant errors
+	ErrTableNotFound     = errors.New("table_not_found")
+	ErrMenuItemNotFound  = errors.New("menu_item_not_found")
+	ErrOrderNotFound     = errors.New("order_not_found")
+	ErrOrderItemNotFound = errors.New("order_item_not_found")
 )
 
 var (

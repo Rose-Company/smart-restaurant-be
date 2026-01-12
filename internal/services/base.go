@@ -24,6 +24,11 @@ type Service struct {
 	otpRepo                   *repositories.OTPRepo
 	otpAttemptRepo            *repositories.OTPAttemptRepo
 	roleRepo                  *repositories.RoleRepo
+	orderRepo                 repositories.OrderRepository
+	orderItemRepo             repositories.OrderItemRepository
+	orderModifierRepo         repositories.OrderModifierRepository
+	orderTimelineRepo         repositories.OrderTimelineRepository
+	kitchenAlertRepo          repositories.KitchenAlertRepository
 }
 
 func NewService(sc server.ServerContext) *Service {
@@ -43,5 +48,10 @@ func NewService(sc server.ServerContext) *Service {
 		otpRepo:                   repositories.NewOTPRepository(db),
 		otpAttemptRepo:            repositories.NewOTPAttemptRepository(db),
 		roleRepo:                  repositories.NewRoleRepository(db),
+		orderRepo:                 repositories.NewOrderRepository(db),
+		orderItemRepo:             repositories.NewOrderItemRepository(db),
+		orderModifierRepo:         repositories.NewOrderModifierRepository(db),
+		orderTimelineRepo:         repositories.NewOrderTimelineRepository(db),
+		kitchenAlertRepo:          repositories.NewKitchenAlertRepository(db),
 	}
 }

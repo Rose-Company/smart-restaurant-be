@@ -150,6 +150,45 @@ func Contains(slice []int, item int) bool {
 	return false
 }
 
+// String pointer helper
+func StrPtr(s string) *string {
+	return &s
+}
+
+// Int pointer helper
+func IntPtr(i int) *int {
+	return &i
+}
+
+// GenerateOrderNumber generates unique order number in format ORD-YYYY-NNNNNN
+func GenerateOrderNumber() string {
+	now := time.Now()
+	return fmt.Sprintf("ORD-%d-%06d", now.Year(), now.Unix()%1000000)
+}
+
+// IsValidOrderStatusTransition validates order status transitions
+func IsValidOrderStatusTransition(from, to string) bool {
+	validTransitions := map[string][]string{
+		"pending":   {"confirmed", "cancelled"},
+		"confirmed": {"preparing", "cancelled"},
+		"preparing": {"ready", "cancelled"},
+		"ready":     {"served"},
+		"served":    {"completed"},
+	}
+
+	allowed, exists := validTransitions[from]
+	if !exists {
+		return false
+	}
+
+	for _, status := range allowed {
+		if status == to {
+			return true
+		}
+	}
+	return false
+}
+
 func ContainsString(slice []string, item string) bool {
 	for _, s := range slice {
 		if s == item {
