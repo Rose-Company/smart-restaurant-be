@@ -92,6 +92,7 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 	menu := c.Group("/api/menu")
 	{
 		menu.GET("", h.LoadMenu())
+		menu.GET("/search", h.LoadMenu())
 
 		menuItem := menu.Group("/items")
 		{
