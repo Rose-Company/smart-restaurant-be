@@ -599,6 +599,26 @@ func (s *Service) GetMenuItemByID(ctx context.Context, id int) (*models.MenuItem
 		modifiers = []models.MenuItemModifier{}
 	}
 
+	reviews, err := s.getReviewByItemId(ctx, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	req := &models.ListMenuItemRequest{
+		CategoryID: &menuItem.CategoryID,
+	}
+
+	listResp, err := s.GetMenuItems(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	relatedItems, ok := listResp.Items.([]models.MenuItemResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected related_items type")
+	}
+
 	response := &models.MenuItemDetailResponse{
 		ID:              menuItem.ID,
 		Name:            menuItem.Name,
@@ -612,6 +632,8 @@ func (s *Service) GetMenuItemByID(ctx context.Context, id int) (*models.MenuItem
 		PreparationTime: menuItem.PrepTimeMinutes,
 		Images:          imageRequests,
 		Modifiers:       modifiers,
+		Reviews:         reviews,
+		RelatedItems:    relatedItems,
 	}
 
 	return response, nil

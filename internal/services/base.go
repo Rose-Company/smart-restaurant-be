@@ -20,6 +20,7 @@ type Service struct {
 	modifierGroupRepo         *repositories.ModifierGroupRepo
 	modifierOptionRepo        *repositories.ModifierOptionRepo
 	menuItemModifierGroupRepo *repositories.MenuItemModifierGroupRepo
+	reviewItemRepo            *repositories.ReviewItemRepo
 	userRepo                  *repositories.UserRepo
 	otpRepo                   *repositories.OTPRepo
 	otpAttemptRepo            *repositories.OTPAttemptRepo
@@ -31,6 +32,7 @@ func NewService(sc server.ServerContext) *Service {
 
 	return &Service{
 		logger:                    l.New(),
+		reviewItemRepo:            repositories.NewReviewItemRepository(db),
 		tableRepo:                 repositories.NewTableRepository(db),
 		restaurantRepo:            repositories.NewRestaurantRepository(db),
 		menuCategoryRepo:          repositories.NewMenuCategoryRepository(db),
