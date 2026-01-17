@@ -23,6 +23,20 @@ type QueryParams struct {
 	Selected []string
 }
 
+type APIResponse[T any] struct {
+	Error   bool   `json:"error"`
+	Code    int    `json:"code"`
+	Data    T      `json:"data,omitempty"`
+	Message string `json:"message"`
+}
+
+type VNPayResponse struct {
+	Message    string `json:"message"`
+	PaymentURL string `json:"paymentUrl,omitempty"`
+	Code       string `json:"code"`
+	Amount     int64  `json:"amount"`
+}
+
 type BaseRequestParamsUri struct {
 	Page     int    `form:"page"`
 	PageSize int    `form:"page_size"`

@@ -102,4 +102,13 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		}
 	}
 
+	payment := c.Group("/api/payment")
+	{
+		vnpay := payment.Group("/vnpay")
+		{
+			vnpay.POST("", h.CreateVNPayPayment())
+			vnpay.GET("/vnpay-callback", h.VnpayCallbackHandler())
+		}
+	}
+
 }

@@ -1,8 +1,10 @@
 package config
 
 import (
+	"app-noti/internal/util"
 	"bytes"
 	"strings"
+	"time"
 
 	_ "embed"
 
@@ -26,6 +28,10 @@ type Schema struct {
 		Params    string `mapstructure:"params"`
 		GormDebug string `mapstructure:"gorm_debug"`
 	} `mapstructure:"postgres"`
+
+	Payment struct {
+		VNPay VNPay `mapstructure:"vnPay"`
+	} `mapstructure:"payment"`
 
 	Redis *Redis `yaml:"redis" mapstructure:"redis"`
 
@@ -59,6 +65,37 @@ type Redis struct {
 	Port string `yaml:"internal_port" mapstructure:"internal_port"`
 	DB   int    `yaml:"db_idx" mapstructure:"db_idx"`
 	Pass string `yaml:"pass" mapstructure:"pass"`
+}
+
+type VNPay struct {
+	PayURL    string `mapstructure:"url"`
+	ReturnURL string `mapstructure:"returnUrl"`
+	TmnCode   string `mapstructure:"tmnCode"`
+	SecretKey string `mapstructure:"secretKey"`
+	Command   string `mapstructure:"command"`
+	OrderType string `mapstructure:"orderType"`
+	Version   string `mapstructure:"version"`
+}
+
+func (c *VNPay) BuildVNPayParams() map[string]string {
+	now := time.Now()
+	format := "20060102150405"
+
+	params := map[string]string{
+		"vnp_Version":    c.Version,
+		"vnp_Command":    c.Command,
+		"vnp_TmnCode":    c.TmnCode,
+		"vnp_CurrCode":   "VND",
+		"vnp_TxnRef":     util.GetRandomNumber(8),
+		"vnp_OrderInfo":  util.GetRandomNumber(8),
+		"vnp_OrderType":  c.OrderType,
+		"vnp_Locale":     "vn",
+		"vnp_ReturnUrl":  c.ReturnURL,
+		"vnp_CreateDate": now.Format(format),
+		"vnp_ExpireDate": now.Add(10000 * time.Minute).Format(format),
+	}
+
+	return params
 }
 
 var Config Schema
