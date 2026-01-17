@@ -6,6 +6,8 @@ import (
 	"app-noti/internal/repositories"
 	"app-noti/pkg/utils"
 	"context"
+	"crypto/md5"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -263,7 +265,49 @@ func (s *Service) UpdateMenuCategoryStatus(ctx context.Context, id int, request 
 	return updated, nil
 }
 
+func (s *Service) generateMenuItemsCacheKey(request *models.ListMenuItemRequest) string {
+	keyData := map[string]interface{}{
+		"page":      request.Page,
+		"page_size": request.PageSize,
+		"sort":      request.Sort,
+	}
+	if request.Status != nil {
+		keyData["status"] = *request.Status
+	}
+	if request.Category != nil {
+		keyData["category"] = *request.Category
+	}
+	if request.Search != nil {
+		keyData["search"] = *request.Search
+	}
+	if request.CategoryID != nil {
+		keyData["category_id"] = *request.CategoryID
+	}
+
+	jsonBytes, _ := json.Marshal(keyData)
+	hash := md5.Sum(jsonBytes)
+	return fmt.Sprintf("menu_items:list:%x", hash)
+}
+
+func (s *Service) invalidateMenuItemsCache(ctx context.Context) {
+	if s.redisClient == nil {
+		return
+	}
+}
+
 func (s *Service) GetMenuItems(ctx context.Context, request *models.ListMenuItemRequest) (*models.BaseListResponse, error) {
+	cacheKey := s.generateMenuItemsCacheKey(request)
+
+	if s.redisClient != nil {
+		cachedData, err := s.redisClient.GetByte(ctx, cacheKey)
+		if err == nil && len(cachedData) > 0 {
+			var cachedResponse models.BaseListResponse
+			if err := json.Unmarshal(cachedData, &cachedResponse); err == nil {
+				return &cachedResponse, nil
+			}
+		}
+	}
+
 	page, pageSize := utils.GetPageAndPageSize(request.Page, request.PageSize)
 
 	filters := []repositories.Clause{
@@ -307,12 +351,18 @@ func (s *Service) GetMenuItems(ctx context.Context, request *models.ListMenuItem
 	}
 
 	if totalCount == 0 {
-		return &models.BaseListResponse{
+		result := &models.BaseListResponse{
 			Total:    0,
 			Page:     page,
 			PageSize: pageSize,
 			Items:    []*models.MenuItemResponse{},
-		}, nil
+		}
+		if s.redisClient != nil {
+			if data, err := json.Marshal(result); err == nil {
+				s.redisClient.SetByte(ctx, cacheKey, data, 300)
+			}
+		}
+		return result, nil
 	}
 
 	queryParams := models.QueryParams{
@@ -391,12 +441,20 @@ func (s *Service) GetMenuItems(ctx context.Context, request *models.ListMenuItem
 		items = append(items, item)
 	}
 
-	return &models.BaseListResponse{
+	result := &models.BaseListResponse{
 		Total:    int(totalCount),
 		Page:     page,
 		PageSize: pageSize,
 		Items:    items,
-	}, nil
+	}
+
+	if s.redisClient != nil {
+		if data, err := json.Marshal(result); err == nil {
+			s.redisClient.SetByte(ctx, cacheKey, data, 300)
+		}
+	}
+
+	return result, nil
 }
 
 func (s *Service) getCategoryMapByIDs(ctx context.Context, categoryIDs []int) (map[int]string, error) {
@@ -599,6 +657,26 @@ func (s *Service) GetMenuItemByID(ctx context.Context, id int) (*models.MenuItem
 		modifiers = []models.MenuItemModifier{}
 	}
 
+	reviews, err := s.getReviewByItemId(ctx, id)
+
+	if err != nil {
+		return nil, err
+	}
+
+	req := &models.ListMenuItemRequest{
+		CategoryID: &menuItem.CategoryID,
+	}
+
+	listResp, err := s.GetMenuItems(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	relatedItems, ok := listResp.Items.([]models.MenuItemResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected related_items type")
+	}
+
 	response := &models.MenuItemDetailResponse{
 		ID:              menuItem.ID,
 		Name:            menuItem.Name,
@@ -612,6 +690,8 @@ func (s *Service) GetMenuItemByID(ctx context.Context, id int) (*models.MenuItem
 		PreparationTime: menuItem.PrepTimeMinutes,
 		Images:          imageRequests,
 		Modifiers:       modifiers,
+		Reviews:         reviews,
+		RelatedItems:    relatedItems,
 	}
 
 	return response, nil
@@ -671,6 +751,8 @@ func (s *Service) CreateMenuItem(ctx context.Context, request *models.CreateMenu
 			// Log error but don't fail the whole operation
 		}
 	}
+
+	s.invalidateMenuItemsCache(ctx)
 
 	return created, nil
 }
@@ -775,6 +857,8 @@ func (s *Service) UpdateMenuItem(ctx context.Context, id int, request *models.Up
 		}
 		s.menuItemModifierGroupRepo.CreatesMultiple(ctx, modifiers)
 	}
+
+	s.invalidateMenuItemsCache(ctx)
 
 	return updated, nil
 }
@@ -917,7 +1001,13 @@ func (s *Service) DeleteMenuItem(ctx context.Context, id int) error {
 	}
 
 	_, err = s.menuItemRepo.UpdateColumns(ctx, id, columns)
-	return err
+	if err != nil {
+		return err
+	}
+
+	s.invalidateMenuItemsCache(ctx)
+
+	return nil
 }
 
 func (s *Service) DeleteMenuCategory(ctx context.Context, id int) error {

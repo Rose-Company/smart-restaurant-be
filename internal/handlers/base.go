@@ -92,12 +92,22 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 	menu := c.Group("/api/menu")
 	{
 		menu.GET("", h.LoadMenu())
+		menu.GET("/search", h.LoadMenu())
 
 		menuItem := menu.Group("/items")
 		{
 			menuItem.GET("/:id", h.GetMenuItemByID())
 			menuItem.POST("/:id/modifier-groups", h.AssignMenuItemModifierGroup())
 			menuItem.DELETE("/:id/modifier-groups/:groupId", h.DeleteMenuItemModifierGroup())
+		}
+	}
+
+	payment := c.Group("/api/payment")
+	{
+		vnpay := payment.Group("/vnpay")
+		{
+			vnpay.POST("", h.CreateVNPayPayment())
+			vnpay.GET("/vnpay-callback", h.VnpayCallbackHandler())
 		}
 	}
 
