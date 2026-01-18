@@ -83,12 +83,20 @@ var (
 	ErrMenuItemNotFound  = errors.New("menu_item_not_found")
 	ErrOrderNotFound     = errors.New("order_not_found")
 	ErrOrderItemNotFound = errors.New("order_item_not_found")
-)
 
-var (
+	// Bill/Payment errors
+	ErrBillNotFound          = errors.New("bill_not_found")
+	ErrPaymentNotFound       = errors.New("payment_not_found")
+	ErrInvalidAmount         = errors.New("invalid_amount")
+	ErrInvalidPaymentMethod  = errors.New("invalid_payment_method")
+	ErrInvalidDiscount       = errors.New("invalid_discount")
+	ErrExpiredDiscount       = errors.New("expired_discount")
+	ErrMinOrderNotMet        = errors.New("min_order_not_met")
+	ErrDiscountLimitExceeded = errors.New("discount_limit_exceeded")
+	ErrPaymentFailed         = errors.New("payment_failed")
+
 	ErrCodeInvalidTimeRange = errors.New("invalid_time_range")
 )
-
 var listErrorData = []errData{
 	{
 		Code:        "cart_not_found",
@@ -431,6 +439,60 @@ var listErrorData = []errData{
 		HTTPCode:    400,
 		MessageViVn: "OTP đã được xác thực",
 		MessageEnUs: "OTP already verified",
+	},
+	{
+		Code:        "bill_not_found",
+		HTTPCode:    404,
+		MessageViVn: "Hóa đơn không tồn tại",
+		MessageEnUs: "Bill not found",
+	},
+	{
+		Code:        "payment_not_found",
+		HTTPCode:    404,
+		MessageViVn: "Thanh toán không tồn tại",
+		MessageEnUs: "Payment not found",
+	},
+	{
+		Code:        "invalid_amount",
+		HTTPCode:    400,
+		MessageViVn: "Số tiền không hợp lệ",
+		MessageEnUs: "Invalid amount",
+	},
+	{
+		Code:        "invalid_payment_method",
+		HTTPCode:    400,
+		MessageViVn: "Phương thức thanh toán không hợp lệ",
+		MessageEnUs: "Invalid payment method",
+	},
+	{
+		Code:        "invalid_discount",
+		HTTPCode:    400,
+		MessageViVn: "Mã giảm giá không hợp lệ",
+		MessageEnUs: "Invalid discount code",
+	},
+	{
+		Code:        "expired_discount",
+		HTTPCode:    400,
+		MessageViVn: "Mã giảm giá đã hết hạn",
+		MessageEnUs: "Discount code has expired",
+	},
+	{
+		Code:        "min_order_not_met",
+		HTTPCode:    400,
+		MessageViVn: "Giá trị đơn hàng không đạt yêu cầu tối thiểu",
+		MessageEnUs: "Order amount does not meet minimum requirement",
+	},
+	{
+		Code:        "discount_limit_exceeded",
+		HTTPCode:    400,
+		MessageViVn: "Mã giảm giá đã vượt quá lần sử dụng",
+		MessageEnUs: "Discount limit exceeded",
+	},
+	{
+		Code:        "payment_failed",
+		HTTPCode:    400,
+		MessageViVn: "Thanh toán thất bại",
+		MessageEnUs: "Payment failed",
 	},
 }
 

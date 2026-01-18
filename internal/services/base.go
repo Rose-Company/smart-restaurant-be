@@ -32,6 +32,11 @@ type Service struct {
 	orderModifierRepo         repositories.OrderModifierRepository
 	orderTimelineRepo         repositories.OrderTimelineRepository
 	kitchenAlertRepo          repositories.KitchenAlertRepository
+	billRepo                  repositories.BillRepository
+	billItemRepo              repositories.BillItemRepository
+	paymentRepo               repositories.PaymentRepository
+	discountCodeRepo          repositories.DiscountCodeRepository
+	discountUsageRepo         repositories.DiscountUsageRepository
 }
 
 func NewService(sc server.ServerContext) *Service {
@@ -58,5 +63,10 @@ func NewService(sc server.ServerContext) *Service {
 		orderModifierRepo:         repositories.NewOrderModifierRepository(db),
 		orderTimelineRepo:         repositories.NewOrderTimelineRepository(db),
 		kitchenAlertRepo:          repositories.NewKitchenAlertRepository(db),
+		billRepo:                  repositories.NewBillRepository(db),
+		billItemRepo:              repositories.NewBillItemRepository(db),
+		paymentRepo:               repositories.NewPaymentRepository(db),
+		discountCodeRepo:          repositories.NewDiscountCodeRepository(db),
+		discountUsageRepo:         repositories.NewDiscountUsageRepository(db),
 	}
 }

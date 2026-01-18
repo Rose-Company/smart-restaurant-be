@@ -34,3 +34,12 @@ mail:
 jwt_secret:
 token_expired_time: 604800000
 
+payment:
+  vnPay:
+    url: 
+    returnUrl:
+    tmnCode: 
+    secretKey: 
+    command: 
+    orderType: 
+    version: 

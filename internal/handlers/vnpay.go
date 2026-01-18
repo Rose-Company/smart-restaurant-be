@@ -3,7 +3,6 @@ package handlers
 import (
 	"app-noti/common"
 	"net/http"
-	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -31,41 +30,30 @@ func (h *Handler) CreateVNPayPayment() gin.HandlerFunc {
 
 func (h *Handler) VnpayCallbackHandler() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// Extract VN-PAY callback parameters from query string
+		params := make(map[string]string)
+		for key, values := range c.Request.URL.Query() {
+			if len(values) > 0 {
+				params[key] = values[0]
+			}
+		}
 
-		status := c.Query("vnp_ResponseCode")
-		orderID := c.Query("vnp_OrderInfo")
-		amountStr := c.Query("vnp_Amount")
-
-		if status == "" || orderID == "" || amountStr == "" {
+		// Validate required parameters
+		if params["vnp_ResponseCode"] == "" || params["vnp_OrderInfo"] == "" {
 			c.JSON(http.StatusBadRequest, gin.H{
-				"message": "missing required params",
+				"message": "missing required VN-PAY callback parameters",
 			})
 			return
 		}
 
-		amount, err := strconv.ParseInt(amountStr, 10, 64)
+		// Handle callback using service
+		response, err := h.service.HandleVNPayCallback(c.Request.Context(), params)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{
-				"message": "invalid amount",
-			})
-			return
-		}
-		amount = amount / 100
-
-		if status == "00" {
-			// TODO: handle update bill status
-
-			c.JSON(http.StatusOK, gin.H{
-				"code":    status,
-				"amount":  amount,
-				"message": "success",
-			})
+			common.AbortWithError(c, err)
 			return
 		}
 
-		c.JSON(http.StatusBadRequest, gin.H{
-			"code":    status,
-			"message": "payment failed",
-		})
+		// Return success response
+		c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, response.Message, response))
 	}
 }

@@ -118,6 +118,27 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		orders.POST("/:id/review", middleware.OptionalUserAuthentication(), h.CreateOrderReview)                    // TASK-009: Submit review
 	}
 
+	// Bill Management APIs (TASK-010 to TASK-012)
+	bills := c.Group("/api/bills")
+	{
+		bills.POST("", middleware.OptionalUserAuthentication(), h.CreateBill())      // TASK-010: Create bill from order
+		bills.GET("/:id", middleware.OptionalUserAuthentication(), h.GetBill())      // TASK-011: Get bill details
+		bills.PATCH("/:id", middleware.OptionalUserAuthentication(), h.UpdateBill()) // TASK-012: Update bill (add discount, mark paid)
+	}
+
+	// Payment Management APIs (TASK-013 to TASK-014)
+	payments := c.Group("/api/payments")
+	{
+		payments.POST("", middleware.OptionalUserAuthentication(), h.ProcessPayment())             // TASK-013: Process payment
+		payments.GET("/:id/status", middleware.OptionalUserAuthentication(), h.GetPaymentStatus()) // TASK-014: Check payment status
+	}
+
+	// Discount Management APIs (TASK-015)
+	discounts := c.Group("/api/discounts")
+	{
+		discounts.POST("/validate", middleware.OptionalUserAuthentication(), h.ValidateDiscount()) // TASK-015: Validate discount code
+	}
+
 	payment := c.Group("/api/payment")
 	{
 		vnpay := payment.Group("/vnpay")
