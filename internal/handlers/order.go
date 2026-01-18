@@ -103,15 +103,9 @@ func (h *Handler) UpdateOrderStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Order status updated successfully", result))
 }
 
-// UpdateOrderItemStatus handles PATCH /api/orders/:id/items/:itemId/status
-// TASK-005: Update individual item status
+// UpdateOrderItemStatus handles PATCH /api/orders/items/:itemId/status
+// TASK-005: Update individual item status (batch update across multiple orders)
 func (h *Handler) UpdateOrderItemStatus(c *gin.Context) {
-	orderID, err := strconv.Atoi(c.Param("id"))
-	if err != nil {
-		common.AbortWithError(c, common.ErrInvalidInput)
-		return
-	}
-
 	itemID, err := strconv.Atoi(c.Param("itemId"))
 	if err != nil {
 		common.AbortWithError(c, common.ErrInvalidInput)
@@ -128,13 +122,42 @@ func (h *Handler) UpdateOrderItemStatus(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	userName, _ := c.Get("user_name")
 
-	result, err := h.service.UpdateOrderItemStatus(c.Request.Context(), orderID, itemID, req, userID, userName)
+	result, err := h.service.UpdateOrderItemStatus(c.Request.Context(), itemID, req, userID, userName)
 	if err != nil {
 		common.AbortWithError(c, err)
 		return
 	}
 
 	c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Order item status updated successfully", result))
+
+}
+
+// UpdateOrderMultipleItemsStatus handles PATCH /api/orders/:id/items/status
+// TASK-005b: Update multiple items status in specific order
+func (h *Handler) UpdateOrderMultipleItemsStatus(c *gin.Context) {
+	orderID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.AbortWithError(c, common.ErrInvalidInput)
+		return
+	}
+
+	var req models.UpdateOrderMultipleItemsStatusRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.AbortWithError(c, common.ErrInvalidInput)
+		return
+	}
+
+	// Get user info from context
+	userID, _ := c.Get("user_id")
+	userName, _ := c.Get("user_name")
+
+	result, err := h.service.UpdateOrderMultipleItemsStatus(c.Request.Context(), orderID, req, userID, userName)
+	if err != nil {
+		common.AbortWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Order items status updated successfully", result))
 }
 
 // UpdateOrder handles PATCH /api/orders/:id

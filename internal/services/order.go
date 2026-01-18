@@ -267,6 +267,22 @@ func (s *Service) GetOrders(ctx context.Context, request *models.ListOrdersReque
 		})
 	}
 
+	// Filter by menu category (if category filter is provided)
+	// This is used when user wants to see orders with specific menu categories
+	var categoryFilterIDs []int
+	if request.Category != nil && *request.Category != "" {
+		// Get menu items by category using repository
+		menuItems, err := s.menuItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+			tx.Joins("JOIN menu_categories mc ON menu_items.category_id = mc.id").
+				Where("mc.name ILIKE ?", "%"+*request.Category+"%")
+		})
+		if err == nil && len(menuItems) > 0 {
+			for _, item := range menuItems {
+				categoryFilterIDs = append(categoryFilterIDs, item.ID)
+			}
+		}
+	}
+
 	// Sorting
 	sortOrder := "created_at DESC"
 	if request.Sort != "" {
@@ -307,10 +323,63 @@ func (s *Service) GetOrders(ctx context.Context, request *models.ListOrdersReque
 	// Build response
 	var items []models.OrderListItemResponse
 	for _, order := range orders {
-		// Count items
-		itemsCount, _ := s.orderItemRepo.Count(ctx, models.QueryParams{}, func(tx *gorm.DB) {
+		// Get order items with modifiers preloaded
+		orderItems, _ := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
 			tx.Where("order_id = ?", order.ID)
+			tx.Preload("MenuItem")
+			tx.Preload("Modifiers")
 		})
+
+		// Filter items by category if provided
+		var filteredItems []*models.OrderItem
+		if len(categoryFilterIDs) > 0 {
+			for _, item := range orderItems {
+				if item.MenuItemID != nil {
+					for _, catID := range categoryFilterIDs {
+						if *item.MenuItemID == catID {
+							filteredItems = append(filteredItems, item)
+							break
+						}
+					}
+				}
+			}
+		} else {
+			filteredItems = orderItems
+		}
+
+		// Build order item responses
+		var responseItems []models.OrderItemResponse
+		for _, item := range filteredItems {
+			// Build modifiers from preloaded data
+			var modResponses []models.OrderModifierResponse
+			if item.Modifiers != nil && len(item.Modifiers) > 0 {
+				for _, mod := range item.Modifiers {
+					modResponses = append(modResponses, models.OrderModifierResponse{
+						ModifierGroupID:    mod.ModifierGroupID,
+						ModifierGroupName:  mod.ModifierGroupName,
+						ModifierOptionID:   mod.ModifierOptionID,
+						ModifierOptionName: mod.ModifierOptionName,
+						Price:              mod.PriceAdjustment,
+					})
+				}
+			}
+
+			// Get menu item image (MenuItem doesn't have Photos field)
+			var menuItemImage *string
+
+			responseItems = append(responseItems, models.OrderItemResponse{
+				ID:                  item.ID,
+				MenuItemID:          item.MenuItemID,
+				MenuItemName:        item.ItemName,
+				MenuItemImage:       menuItemImage,
+				Quantity:            item.Quantity,
+				UnitPrice:           item.UnitPrice,
+				Subtotal:            item.Subtotal,
+				SpecialInstructions: item.SpecialInstructions,
+				Status:              item.Status,
+				Modifiers:           modResponses,
+			})
+		}
 
 		tableName := "Unknown"
 		if order.Table != nil {
@@ -319,8 +388,18 @@ func (s *Service) GetOrders(ctx context.Context, request *models.ListOrdersReque
 
 		var waiterName *string
 		if order.Waiter != nil {
-			name := fmt.Sprintf("%s %s", *order.Waiter.FirstName, *order.Waiter.LastName)
-			waiterName = &name
+			if order.Waiter.FirstName != nil && order.Waiter.LastName != nil {
+				name := fmt.Sprintf("%s %s", *order.Waiter.FirstName, *order.Waiter.LastName)
+				waiterName = &name
+			}
+		}
+
+		// Get customer name safely
+		customerName := ""
+		if order.CustomerUser != nil {
+			if order.CustomerUser.FirstName != nil && order.CustomerUser.LastName != nil {
+				customerName = fmt.Sprintf("%s %s", *order.CustomerUser.FirstName, *order.CustomerUser.LastName)
+			}
 		}
 
 		items = append(items, models.OrderListItemResponse{
@@ -329,10 +408,11 @@ func (s *Service) GetOrders(ctx context.Context, request *models.ListOrdersReque
 			TableID:            order.TableID,
 			TableName:          tableName,
 			CustomerID:         order.CustomerUserID,
-			CustomerName:       *order.CustomerName,
+			CustomerName:       customerName,
 			Status:             order.Status,
 			TotalAmount:        order.Total,
-			ItemsCount:         int(itemsCount),
+			ItemsCount:         len(filteredItems),
+			Items:              responseItems,
 			CreatedAt:          order.CreatedAt,
 			UpdatedAt:          order.UpdatedAt,
 			EstimatedReadyTime: order.EstimatedReadyTime,
@@ -412,11 +492,16 @@ func (s *Service) GetOrderByID(ctx context.Context, orderID int, role string) (*
 	}
 
 	// Build response based on role
+	customerName := "Guest"
+	if order.CustomerName != nil {
+		customerName = *order.CustomerName
+	}
+
 	response := &models.OrderResponse{
 		ID:             order.ID,
 		OrderNumber:    order.OrderNumber,
 		TableID:        order.TableID,
-		CustomerName:   *order.CustomerName,
+		CustomerName:   customerName,
 		Status:         order.Status,
 		TotalAmount:    order.Subtotal,
 		TaxAmount:      order.Tax,
@@ -449,8 +534,10 @@ func (s *Service) GetOrderByID(ctx context.Context, orderID int, role string) (*
 	response.WaiterID = order.WaiterID
 
 	if order.Waiter != nil {
-		waiterName := fmt.Sprintf("%s %s", *order.Waiter.FirstName, *order.Waiter.LastName)
-		response.WaiterName = &waiterName
+		if order.Waiter.FirstName != nil && order.Waiter.LastName != nil {
+			waiterName := fmt.Sprintf("%s %s", *order.Waiter.FirstName, *order.Waiter.LastName)
+			response.WaiterName = &waiterName
+		}
 	}
 
 	// Get timeline
@@ -548,25 +635,11 @@ func (s *Service) UpdateOrderStatus(ctx context.Context, orderID int, req models
 	}, nil
 }
 
-// UpdateOrderItemStatus - TASK-005: Update individual item status
-func (s *Service) UpdateOrderItemStatus(ctx context.Context, orderID, itemID int, req models.UpdateOrderItemStatusRequest, userID, userName interface{}) (*models.OrderItemStatusUpdateResponse, error) {
-	// Get order item
-	item, err := s.orderItemRepo.GetDetailByConditions(ctx, func(tx *gorm.DB) {
-		tx.Where("id = ? AND order_id = ?", itemID, orderID)
-	})
-	if err != nil {
-		return nil, common.ErrOrderItemNotFound
-	}
-
-	previousStatus := item.Status
-
-	// Update item status
-	_, err = s.orderItemRepo.UpdateColumns(ctx, itemID, map[string]interface{}{
-		"status":     req.Status,
-		"updated_at": time.Now(),
-	})
-	if err != nil {
-		return nil, err
+// UpdateOrderItemStatus - TASK-005: Update menu item status across multiple orders
+func (s *Service) UpdateOrderItemStatus(ctx context.Context, menuItemID int, req models.UpdateOrderItemStatusRequest, userID, userName interface{}) (*models.OrderItemStatusUpdateBatchResponse, error) {
+	// Validate order_ids are provided
+	if len(req.OrderIDs) == 0 {
+		return nil, fmt.Errorf("order_ids cannot be empty")
 	}
 
 	var updatedByName *string
@@ -575,16 +648,103 @@ func (s *Service) UpdateOrderItemStatus(ctx context.Context, orderID, itemID int
 		updatedByName = &name
 	}
 
-	return &models.OrderItemStatusUpdateResponse{
-		ItemID:         itemID,
-		OrderID:        orderID,
-		MenuItemName:   item.ItemName,
-		Status:         req.Status,
-		PreviousStatus: previousStatus,
-		UpdatedAt:      time.Now(),
-		UpdatedBy:      "kitchen",
-		UpdatedByName:  updatedByName,
-	}, nil
+	response := &models.OrderItemStatusUpdateBatchResponse{
+		UpdatedItems: []models.OrderItemStatusUpdateResponse{},
+	}
+
+	// Update item status for each order where this menu item appears
+	for _, orderID := range req.OrderIDs {
+		// Find order items with this menu_item_id in this order
+		items, err := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+			tx.Where("menu_item_id = ? AND order_id = ?", menuItemID, orderID)
+		})
+		if err != nil || len(items) == 0 {
+			continue // Skip if item not found in this order
+		}
+
+		// Update all matching items for this order
+		for _, item := range items {
+			previousStatus := item.Status
+
+			// Update item status by order_item_id
+			_, err = s.orderItemRepo.UpdateColumns(ctx, item.ID, map[string]interface{}{
+				"status":     req.Status,
+				"updated_at": time.Now(),
+			})
+			if err != nil {
+				continue
+			}
+
+			response.UpdatedItems = append(response.UpdatedItems, models.OrderItemStatusUpdateResponse{
+				ItemID:         item.ID,
+				OrderID:        orderID,
+				MenuItemName:   item.ItemName,
+				Status:         req.Status,
+				PreviousStatus: previousStatus,
+				UpdatedAt:      time.Now(),
+				UpdatedBy:      "kitchen",
+				UpdatedByName:  updatedByName,
+			})
+		}
+	}
+
+	response.TotalUpdated = len(response.UpdatedItems)
+	return response, nil
+}
+
+// UpdateOrderMultipleItemsStatus - TASK-005b: Update multiple items status in specific order
+func (s *Service) UpdateOrderMultipleItemsStatus(ctx context.Context, orderID int, req models.UpdateOrderMultipleItemsStatusRequest, userID, userName interface{}) (*models.UpdateOrderMultipleItemsStatusResponse, error) {
+	// Verify order exists
+	_, err := s.orderRepo.GetByID(ctx, orderID)
+	if err != nil {
+		return nil, common.ErrOrderNotFound
+	}
+
+	if len(req.Items) == 0 {
+		return nil, fmt.Errorf("items cannot be empty")
+	}
+
+	response := &models.UpdateOrderMultipleItemsStatusResponse{
+		UpdatedItems: []models.OrderItemStatusUpdateResponse{},
+	}
+
+	// Update each item
+	for _, reqItem := range req.Items {
+		// Find order item with this menu_item_id in this order
+		items, err := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+			tx.Where("menu_item_id = ? AND order_id = ?", reqItem.MenuItemID, orderID)
+		})
+		if err != nil || len(items) == 0 {
+			continue // Skip if item not found in this order
+		}
+
+		for _, item := range items {
+			previousStatus := item.Status
+
+			// Update item status
+			_, err = s.orderItemRepo.UpdateColumns(ctx, item.ID, map[string]interface{}{
+				"status":     reqItem.Status,
+				"updated_at": time.Now(),
+			})
+			if err != nil {
+				continue
+			}
+
+			response.UpdatedItems = append(response.UpdatedItems, models.OrderItemStatusUpdateResponse{
+				ItemID:         item.ID,
+				OrderID:        orderID,
+				MenuItemName:   item.ItemName,
+				Status:         reqItem.Status,
+				PreviousStatus: previousStatus,
+				UpdatedAt:      time.Now(),
+				UpdatedBy:      "kitchen",
+				UpdatedByName:  nil,
+			})
+		}
+	}
+
+	response.TotalUpdated = len(response.UpdatedItems)
+	return response, nil
 }
 
 // UpdateOrder - TASK-006: Add notes/metadata to order

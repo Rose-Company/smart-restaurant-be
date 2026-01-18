@@ -153,13 +153,27 @@ type OrderModifierRequest struct {
 
 type UpdateOrderStatusRequest struct {
 	Status    string  `json:"status" binding:"required"`
-	UpdatedBy string  `json:"updated_by" binding:"required"`
+	UpdatedBy string  `json:"updated_by"`
 	Reason    *string `json:"reason"`
 }
 
 type UpdateOrderItemStatusRequest struct {
-	Status string  `json:"status" binding:"required"`
+	OrderIDs []int   `json:"order_ids" binding:"required,min=1"`
+	Status   string  `json:"status" binding:"required"`
+	Reason   *string `json:"reason"`
+}
+
+type UpdateOrderMultipleItemsStatusRequest struct {
+	Items []struct {
+		MenuItemID int    `json:"menu_item_id" binding:"required"`
+		Status     string `json:"status" binding:"required"`
+	} `json:"items" binding:"required,min=1"`
 	Reason *string `json:"reason"`
+}
+
+type UpdateOrderMultipleItemsStatusResponse struct {
+	TotalUpdated int                             `json:"total_updated"`
+	UpdatedItems []OrderItemStatusUpdateResponse `json:"updated_items"`
 }
 
 type UpdateOrderRequest struct {
@@ -185,6 +199,7 @@ type ListOrdersRequest struct {
 	DateTo   *string `form:"date_to"`
 	TableID  *int    `form:"table_id"`
 	Search   *string `form:"search"`
+	Category *string `form:"category"`
 }
 
 // Response models
@@ -214,20 +229,21 @@ type OrderResponse struct {
 }
 
 type OrderListItemResponse struct {
-	ID                 int        `json:"id"`
-	OrderNumber        string     `json:"order_number"`
-	TableID            int        `json:"table_id"`
-	TableName          string     `json:"table_name"`
-	CustomerID         *string    `json:"customer_id,omitempty"`
-	CustomerName       string     `json:"customer_name"`
-	Status             string     `json:"status"`
-	TotalAmount        float64    `json:"total_amount"`
-	ItemsCount         int        `json:"items_count"`
-	CreatedAt          time.Time  `json:"created_at"`
-	UpdatedAt          time.Time  `json:"updated_at"`
-	EstimatedReadyTime *time.Time `json:"estimated_ready_time,omitempty"`
-	WaiterID           *string    `json:"waiter_id,omitempty"`
-	WaiterName         *string    `json:"waiter_name,omitempty"`
+	ID                 int                 `json:"id"`
+	OrderNumber        string              `json:"order_number"`
+	TableID            int                 `json:"table_id"`
+	TableName          string              `json:"table_name"`
+	CustomerID         *string             `json:"customer_id,omitempty"`
+	CustomerName       string              `json:"customer_name"`
+	Status             string              `json:"status"`
+	TotalAmount        float64             `json:"total_amount"`
+	ItemsCount         int                 `json:"items_count"`
+	Items              []OrderItemResponse `json:"items"`
+	CreatedAt          time.Time           `json:"created_at"`
+	UpdatedAt          time.Time           `json:"updated_at"`
+	EstimatedReadyTime *time.Time          `json:"estimated_ready_time,omitempty"`
+	WaiterID           *string             `json:"waiter_id,omitempty"`
+	WaiterName         *string             `json:"waiter_name,omitempty"`
 }
 
 type OrderItemResponse struct {
@@ -287,6 +303,11 @@ type OrderItemStatusUpdateResponse struct {
 	UpdatedAt      time.Time `json:"updated_at"`
 	UpdatedBy      string    `json:"updated_by"`
 	UpdatedByName  *string   `json:"updated_by_name,omitempty"`
+}
+
+type OrderItemStatusUpdateBatchResponse struct {
+	TotalUpdated int                             `json:"total_updated"`
+	UpdatedItems []OrderItemStatusUpdateResponse `json:"updated_items"`
 }
 
 type AlertResponse struct {
