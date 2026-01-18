@@ -22,7 +22,7 @@ type Service struct {
 	modifierGroupRepo         *repositories.ModifierGroupRepo
 	modifierOptionRepo        *repositories.ModifierOptionRepo
 	menuItemModifierGroupRepo *repositories.MenuItemModifierGroupRepo
-	reviewItemRepo            *repositories.ReviewItemRepo
+	reviewItemRepo            repositories.ReviewItemRepository
 	userRepo                  *repositories.UserRepo
 	otpRepo                   *repositories.OTPRepo
 	otpAttemptRepo            *repositories.OTPAttemptRepo
@@ -37,6 +37,8 @@ type Service struct {
 	paymentRepo               repositories.PaymentRepository
 	discountCodeRepo          repositories.DiscountCodeRepository
 	discountUsageRepo         repositories.DiscountUsageRepository
+	reviewRepo                repositories.ReviewRepository
+	preferencesRepo           repositories.UserPreferencesRepository
 }
 
 func NewService(sc server.ServerContext) *Service {
@@ -68,5 +70,7 @@ func NewService(sc server.ServerContext) *Service {
 		paymentRepo:               repositories.NewPaymentRepository(db),
 		discountCodeRepo:          repositories.NewDiscountCodeRepository(db),
 		discountUsageRepo:         repositories.NewDiscountUsageRepository(db),
+		reviewRepo:                repositories.NewReviewRepository(db),
+		preferencesRepo:           repositories.NewUserPreferencesRepository(db),
 	}
 }

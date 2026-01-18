@@ -177,12 +177,6 @@ type CreateAlertRequest struct {
 	Priority  string `json:"priority"`
 }
 
-type CreateReviewRequest struct {
-	Rating  int      `json:"rating" binding:"required,min=1,max=5"`
-	Comment *string  `json:"comment"`
-	Photos  []string `json:"photos"`
-}
-
 type ListOrdersRequest struct {
 	BaseRequestParamsUri
 	Role     *string `form:"role"`

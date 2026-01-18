@@ -148,4 +148,15 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		}
 	}
 
+	// Customer Profile & Account Endpoints (TASK-016 to TASK-020)
+	customer := c.Group("/api/customer")
+	customer.Use(middleware.UserAuthentication())
+	{
+		customer.GET("/profile", h.GetProfile)         // TASK-016: Get customer profile
+		customer.PUT("/profile", h.UpdateProfile)      // TASK-017: Update customer profile
+		customer.POST("/avatar", h.UploadAvatar)       // TASK-018: Upload avatar
+		customer.PATCH("/password", h.ChangePassword)  // TASK-019: Change password
+		customer.GET("/reviews", h.GetCustomerReviews) // TASK-020: Get customer reviews
+	}
+
 }

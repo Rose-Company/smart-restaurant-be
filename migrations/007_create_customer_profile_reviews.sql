@@ -226,6 +226,25 @@ CREATE INDEX idx_review_items_review_id ON public.review_items(review_id);
 CREATE INDEX idx_review_items_menu_item_id ON public.review_items(menu_item_id);
 
 -- =====================================================
+-- 7a. RESTAURANT RESPONSES TABLE (Separate from customer_reviews)
+-- =====================================================
+
+CREATE TABLE IF NOT EXISTS public.restaurant_responses (
+    id SERIAL PRIMARY KEY,
+    review_id INT NOT NULL UNIQUE,
+    message TEXT NOT NULL,
+    responded_by VARCHAR(255),
+    responded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    
+    CONSTRAINT restaurant_responses_review_id_fkey 
+        FOREIGN KEY (review_id) REFERENCES public.customer_reviews(id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_restaurant_responses_review_id ON public.restaurant_responses(review_id);
+
+COMMENT ON TABLE public.restaurant_responses IS 'Restaurant management responses to customer reviews';
+
+-- =====================================================
 -- 8. FAVORITE ITEMS TABLE
 -- =====================================================
 
