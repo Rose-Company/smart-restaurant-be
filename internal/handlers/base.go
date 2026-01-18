@@ -93,6 +93,7 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 	menu := c.Group("/api/menu")
 	{
 		menu.GET("", h.LoadMenu())
+		menu.GET("/search", h.LoadMenu())
 
 		menuItem := menu.Group("/items")
 		{
@@ -115,6 +116,15 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		orders.POST("/:id/cancel", middleware.OptionalUserAuthentication(), h.CancelOrder)                          // TASK-007: Cancel order
 		orders.POST("/:id/alert", middleware.OptionalUserAuthentication(), h.SendKitchenAlert)                      // TASK-008: Send kitchen alert
 		orders.POST("/:id/review", middleware.OptionalUserAuthentication(), h.CreateOrderReview)                    // TASK-009: Submit review
+	}
+
+	payment := c.Group("/api/payment")
+	{
+		vnpay := payment.Group("/vnpay")
+		{
+			vnpay.POST("", h.CreateVNPayPayment())
+			vnpay.GET("/vnpay-callback", h.VnpayCallbackHandler())
+		}
 	}
 
 }

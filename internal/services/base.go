@@ -4,6 +4,7 @@ import (
 	"app-noti/common"
 	"app-noti/internal/repositories"
 	l "app-noti/pkg/logger"
+	redisClient "app-noti/pkg/redis"
 	"app-noti/server"
 
 	"go.uber.org/zap"
@@ -12,6 +13,7 @@ import (
 
 type Service struct {
 	logger                    *zap.Logger
+	redisClient               redisClient.ClientI
 	tableRepo                 *repositories.TableRepo
 	restaurantRepo            *repositories.RestaurantRepo
 	menuCategoryRepo          *repositories.MenuCategoryRepo
@@ -20,6 +22,7 @@ type Service struct {
 	modifierGroupRepo         *repositories.ModifierGroupRepo
 	modifierOptionRepo        *repositories.ModifierOptionRepo
 	menuItemModifierGroupRepo *repositories.MenuItemModifierGroupRepo
+	reviewItemRepo            *repositories.ReviewItemRepo
 	userRepo                  *repositories.UserRepo
 	otpRepo                   *repositories.OTPRepo
 	otpAttemptRepo            *repositories.OTPAttemptRepo
@@ -36,6 +39,8 @@ func NewService(sc server.ServerContext) *Service {
 
 	return &Service{
 		logger:                    l.New(),
+		redisClient:               redisClient.NewRedisClient(),
+		reviewItemRepo:            repositories.NewReviewItemRepository(db),
 		tableRepo:                 repositories.NewTableRepository(db),
 		restaurantRepo:            repositories.NewRestaurantRepository(db),
 		menuCategoryRepo:          repositories.NewMenuCategoryRepository(db),

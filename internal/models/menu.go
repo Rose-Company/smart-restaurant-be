@@ -127,9 +127,10 @@ type UpdateMenuItemRequest struct {
 
 type ListMenuItemRequest struct {
 	BaseRequestParamsUri
-	Search   *string `form:"search"`
-	Status   *string `form:"status"`
-	Category *string `form:"category"`
+	Search     *string `form:"search"`
+	Status     *string `form:"status"`
+	Category   *string `form:"category"`
+	CategoryID *int    `form:"category_id"`
 }
 
 type MenuItemIDParamsUri struct {
@@ -166,6 +167,8 @@ type MenuItemDetailResponse struct {
 	PreparationTime int                    `json:"preparation_time,omitempty"`
 	Images          []MenuItemPhotoRequest `json:"images,omitempty"`
 	Modifiers       []MenuItemModifier     `json:"modifiers,omitempty"`
+	Reviews         []ReviewItem           `json:"reviews"`
+	RelatedItems    []MenuItemResponse     `json:"related_items"`
 }
 
 type MenuItemPhotoRequest struct {
