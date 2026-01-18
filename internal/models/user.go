@@ -33,6 +33,7 @@ type User struct {
 	TotalSpent    float64          `json:"total_spent" gorm:"column:total_spent;default:0"`
 	EmailVerified bool             `json:"email_verified" gorm:"column:email_verified;default:false"`
 	PhoneVerified bool             `json:"phone_verified" gorm:"column:phone_verified;default:false"`
+	LastLoginAt   *time.Time       `json:"last_login_at" gorm:"column:last_login_at"`
 	UpdatedAt     time.Time        `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
 }
 

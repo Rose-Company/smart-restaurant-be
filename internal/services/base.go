@@ -39,6 +39,9 @@ type Service struct {
 	discountUsageRepo         repositories.DiscountUsageRepository
 	reviewRepo                repositories.ReviewRepository
 	preferencesRepo           repositories.UserPreferencesRepository
+	staffProfileRepo          repositories.StaffProfileRepository
+	waiterTableAssignmentRepo repositories.WaiterTableAssignmentRepository
+	staffInvitationRepo       repositories.StaffInvitationRepository
 }
 
 func NewService(sc server.ServerContext) *Service {
@@ -72,5 +75,8 @@ func NewService(sc server.ServerContext) *Service {
 		discountUsageRepo:         repositories.NewDiscountUsageRepository(db),
 		reviewRepo:                repositories.NewReviewRepository(db),
 		preferencesRepo:           repositories.NewUserPreferencesRepository(db),
+		staffProfileRepo:          repositories.NewStaffProfileRepository(db),
+		waiterTableAssignmentRepo: repositories.NewWaiterTableAssignmentRepository(db),
+		staffInvitationRepo:       repositories.NewStaffInvitationRepository(db),
 	}
 }
