@@ -2,6 +2,7 @@ package handlers
 
 import (
 	services "app-noti/internal/services"
+	"app-noti/middleware"
 	l "app-noti/pkg/logger"
 	"app-noti/server"
 
@@ -102,6 +103,43 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		}
 	}
 
+	// Order Management APIs (TASK-001 to TASK-009)
+	// Using optional authentication - guests can order via QR code, logged-in users get personalized experience
+	orders := c.Group("/api/orders")
+	{
+		orders.POST("", middleware.OptionalUserAuthentication(), h.CreateOrder)                                      // TASK-001: Create order
+		orders.GET("", middleware.OptionalUserAuthentication(), h.GetOrders)                                         // TASK-002: Get orders list
+		orders.GET("/:id", middleware.OptionalUserAuthentication(), h.GetOrderByID)                                  // TASK-003: Get order details
+		orders.PATCH("/:id/status", middleware.OptionalUserAuthentication(), h.UpdateOrderStatus)                    // TASK-004: Update order status
+		orders.PATCH("/items/:itemId/status", middleware.OptionalUserAuthentication(), h.UpdateOrderItemStatus)      // TASK-005: Update item status (batch)
+		orders.PATCH("/:id/items/status", middleware.OptionalUserAuthentication(), h.UpdateOrderMultipleItemsStatus) // TASK-005b: Update multiple items status (single order)
+		orders.PATCH("/:id", middleware.OptionalUserAuthentication(), h.UpdateOrder)                                 // TASK-006: Add notes/metadata
+		orders.POST("/:id/cancel", middleware.OptionalUserAuthentication(), h.CancelOrder)                           // TASK-007: Cancel order
+		orders.POST("/:id/alert", middleware.OptionalUserAuthentication(), h.SendKitchenAlert)                       // TASK-008: Send kitchen alert
+		orders.POST("/:id/review", middleware.OptionalUserAuthentication(), h.CreateOrderReview)                     // TASK-009: Submit review
+	}
+
+	// Bill Management APIs (TASK-010 to TASK-012)
+	bills := c.Group("/api/bills")
+	{
+		bills.POST("", middleware.OptionalUserAuthentication(), h.CreateBill())      // TASK-010: Create bill from order
+		bills.GET("/:id", middleware.OptionalUserAuthentication(), h.GetBill())      // TASK-011: Get bill details
+		bills.PATCH("/:id", middleware.OptionalUserAuthentication(), h.UpdateBill()) // TASK-012: Update bill (add discount, mark paid)
+	}
+
+	// Payment Management APIs (TASK-013 to TASK-014)
+	payments := c.Group("/api/payments")
+	{
+		payments.POST("", middleware.OptionalUserAuthentication(), h.ProcessPayment())             // TASK-013: Process payment
+		payments.GET("/:id/status", middleware.OptionalUserAuthentication(), h.GetPaymentStatus()) // TASK-014: Check payment status
+	}
+
+	// Discount Management APIs (TASK-015)
+	discounts := c.Group("/api/discounts")
+	{
+		discounts.POST("/validate", middleware.OptionalUserAuthentication(), h.ValidateDiscount()) // TASK-015: Validate discount code
+	}
+
 	payment := c.Group("/api/payment")
 	{
 		vnpay := payment.Group("/vnpay")
@@ -109,6 +147,36 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 			vnpay.POST("", h.CreateVNPayPayment())
 			vnpay.GET("/vnpay-callback", h.VnpayCallbackHandler())
 		}
+	}
+
+	// Customer Profile & Account Endpoints (TASK-016 to TASK-020)
+	customer := c.Group("/api/customer")
+	{
+		customer.GET("/profile", middleware.UserAuthentication(), h.GetProfile)         // TASK-016: Get customer profile
+		customer.PUT("/profile", middleware.UserAuthentication(), h.UpdateProfile)      // TASK-017: Update customer profile
+		customer.POST("/avatar", middleware.UserAuthentication(), h.UploadAvatar)       // TASK-018: Upload avatar
+		customer.PATCH("/password", middleware.UserAuthentication(), h.ChangePassword)  // TASK-019: Change password
+		customer.GET("/reviews", middleware.UserAuthentication(), h.GetCustomerReviews) // TASK-020: Get customer reviews
+	}
+
+	// Staff Management Endpoints (TASK-021 to TASK-027)
+	adminStaff := c.Group("/api/admin/staff")
+	{
+		adminStaff.GET("", middleware.UserAuthentication(), h.ListStaff)                                // TASK-021: List staff with filters
+		adminStaff.POST("", middleware.UserAuthentication(), h.CreateStaff)                             // TASK-022: Create staff account
+		adminStaff.GET("/:id", middleware.UserAuthentication(), h.GetStaffByID)                         // TASK-023: Get staff details
+		adminStaff.PUT("/:id", middleware.UserAuthentication(), h.UpdateStaff)                          // TASK-024: Update staff account
+		adminStaff.DELETE("/:id", middleware.UserAuthentication(), h.DeleteStaff)                       // TASK-025: Delete staff account
+		adminStaff.POST("/:id/send-invite", middleware.UserAuthentication(), h.SendStaffInvite)         // TASK-026: Send staff invitation
+		adminStaff.PATCH("/:id/assign-tables", middleware.UserAuthentication(), h.AssignTablesToWaiter) // TASK-027: Assign tables to waiter
+	}
+
+	// Staff Profile Endpoints (TASK-028 to TASK-030)
+	staff := c.Group("/api/staff")
+	{
+		staff.GET("/profile", middleware.UserAuthentication(), h.GetStaffProfile)        // TASK-028: Get staff profile
+		staff.PUT("/profile", middleware.UserAuthentication(), h.UpdateStaffProfile)     // TASK-029: Update own profile
+		staff.PATCH("/password", middleware.UserAuthentication(), h.ChangeStaffPassword) // TASK-030: Change password
 	}
 
 }

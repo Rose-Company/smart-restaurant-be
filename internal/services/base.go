@@ -22,11 +22,26 @@ type Service struct {
 	modifierGroupRepo         *repositories.ModifierGroupRepo
 	modifierOptionRepo        *repositories.ModifierOptionRepo
 	menuItemModifierGroupRepo *repositories.MenuItemModifierGroupRepo
-	reviewItemRepo            *repositories.ReviewItemRepo
+	reviewItemRepo            repositories.ReviewItemRepository
 	userRepo                  *repositories.UserRepo
 	otpRepo                   *repositories.OTPRepo
 	otpAttemptRepo            *repositories.OTPAttemptRepo
 	roleRepo                  *repositories.RoleRepo
+	orderRepo                 repositories.OrderRepository
+	orderItemRepo             repositories.OrderItemRepository
+	orderModifierRepo         repositories.OrderModifierRepository
+	orderTimelineRepo         repositories.OrderTimelineRepository
+	kitchenAlertRepo          repositories.KitchenAlertRepository
+	billRepo                  repositories.BillRepository
+	billItemRepo              repositories.BillItemRepository
+	paymentRepo               repositories.PaymentRepository
+	discountCodeRepo          repositories.DiscountCodeRepository
+	discountUsageRepo         repositories.DiscountUsageRepository
+	reviewRepo                repositories.ReviewRepository
+	preferencesRepo           repositories.UserPreferencesRepository
+	staffProfileRepo          repositories.StaffProfileRepository
+	waiterTableAssignmentRepo repositories.WaiterTableAssignmentRepository
+	staffInvitationRepo       repositories.StaffInvitationRepository
 }
 
 func NewService(sc server.ServerContext) *Service {
@@ -48,5 +63,20 @@ func NewService(sc server.ServerContext) *Service {
 		otpRepo:                   repositories.NewOTPRepository(db),
 		otpAttemptRepo:            repositories.NewOTPAttemptRepository(db),
 		roleRepo:                  repositories.NewRoleRepository(db),
+		orderRepo:                 repositories.NewOrderRepository(db),
+		orderItemRepo:             repositories.NewOrderItemRepository(db),
+		orderModifierRepo:         repositories.NewOrderModifierRepository(db),
+		orderTimelineRepo:         repositories.NewOrderTimelineRepository(db),
+		kitchenAlertRepo:          repositories.NewKitchenAlertRepository(db),
+		billRepo:                  repositories.NewBillRepository(db),
+		billItemRepo:              repositories.NewBillItemRepository(db),
+		paymentRepo:               repositories.NewPaymentRepository(db),
+		discountCodeRepo:          repositories.NewDiscountCodeRepository(db),
+		discountUsageRepo:         repositories.NewDiscountUsageRepository(db),
+		reviewRepo:                repositories.NewReviewRepository(db),
+		preferencesRepo:           repositories.NewUserPreferencesRepository(db),
+		staffProfileRepo:          repositories.NewStaffProfileRepository(db),
+		waiterTableAssignmentRepo: repositories.NewWaiterTableAssignmentRepository(db),
+		staffInvitationRepo:       repositories.NewStaffInvitationRepository(db),
 	}
 }
