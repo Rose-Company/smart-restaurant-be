@@ -98,7 +98,6 @@ func (c *VNPay) BuildVNPayParams() map[string]string {
 	return params
 }
 
-// Config is the global config variable
 var Config Schema
 
 func init() {
