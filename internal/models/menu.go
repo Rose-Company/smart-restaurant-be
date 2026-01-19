@@ -171,6 +171,36 @@ type MenuItemDetailResponse struct {
 	RelatedItems    []*MenuItemResponse    `json:"related_items"`
 }
 
+type MenuItemDetailResponseV2 struct {
+	ID              int                        `json:"id"`
+	Name            string                     `json:"name"`
+	Category        string                     `json:"category"`
+	Price           float64                    `json:"price"`
+	Status          string                     `json:"status"`
+	LastUpdate      string                     `json:"last_update"`
+	ChefRecommended bool                       `json:"chef_recommended"`
+	ImageURL        string                     `json:"image_url,omitempty"`
+	Description     *string                    `json:"description,omitempty"`
+	PreparationTime int                        `json:"preparation_time,omitempty"`
+	Images          []MenuItemPhotoRequest     `json:"images,omitempty"`
+	Modifiers       []MenuItemModifierDetailed `json:"modifiers,omitempty"`
+	Reviews         []ReviewItem               `json:"reviews"`
+}
+
+type MenuItemModifierDetailed struct {
+	ID            int                      `json:"id"`
+	Name          string                   `json:"name"`
+	SelectionType string                   `json:"selection_type"`
+	IsRequired    bool                     `json:"is_required"`
+	Options       []MenuItemModifierOption `json:"options"`
+}
+
+type MenuItemModifierOption struct {
+	ID              int     `json:"id"`
+	Name            string  `json:"name"`
+	PriceAdjustment float64 `json:"price_adjustment"`
+}
+
 type MenuItemPhotoRequest struct {
 	ID        string `json:"id,omitempty"`
 	URL       string `json:"url"`

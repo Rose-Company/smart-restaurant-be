@@ -697,6 +697,169 @@ func (s *Service) GetMenuItemByID(ctx context.Context, id int) (*models.MenuItem
 	return response, nil
 }
 
+func (s *Service) GetMenuItemByIDDetailed(ctx context.Context, id int) (*models.MenuItemDetailResponseV2, error) {
+	filters := []repositories.Clause{
+		func(tx *gorm.DB) {
+			tx.Where("id = ? AND is_deleted = FALSE", id)
+		},
+	}
+
+	menuItem, err := s.menuItemRepo.GetDetailByConditions(ctx, filters...)
+	if err != nil {
+		return nil, err
+	}
+
+	category, err := s.menuCategoryRepo.GetByID(ctx, menuItem.CategoryID)
+	categoryName := ""
+	if err == nil {
+		categoryName = category.Name
+	}
+
+	statusMap := map[string]string{
+		"available":   "Available",
+		"unavailable": "Unavailable",
+		"sold_out":    "Sold Out",
+	}
+	displayStatus := statusMap[menuItem.Status]
+
+	lastUpdate := ""
+	if menuItem.UpdatedAt != nil {
+		lastUpdate = menuItem.UpdatedAt.Format("2006-01-02")
+	}
+
+	// Fetch images
+	photoFilters := []repositories.Clause{
+		func(tx *gorm.DB) {
+			tx.Where("menu_item_id = ?", id)
+		},
+	}
+
+	photos, err := s.menuItemPhotoRepo.List(ctx, models.QueryParams{}, photoFilters...)
+	if err != nil {
+		photos = []*models.MenuItemPhoto{}
+	}
+
+	imageRequests := make([]models.MenuItemPhotoRequest, 0, len(photos))
+	primaryImageURL := ""
+	for _, photo := range photos {
+		imageRequests = append(imageRequests, models.MenuItemPhotoRequest{
+			ID:        string(rune(photo.ID)),
+			URL:       photo.Url,
+			IsPrimary: photo.IsPrimary,
+		})
+		if photo.IsPrimary {
+			primaryImageURL = photo.Url
+		}
+	}
+
+	// Fetch modifiers with full options
+	modifiersDetailed, err := s.getMenuItemModifiersDetailed(ctx, id)
+	if err != nil {
+		modifiersDetailed = []models.MenuItemModifierDetailed{}
+	}
+
+	// Fetch reviews
+	reviews, err := s.getReviewByItemId(ctx, id)
+	if err != nil {
+		reviews = []models.ReviewItem{}
+	}
+
+	response := &models.MenuItemDetailResponseV2{
+		ID:              menuItem.ID,
+		Name:            menuItem.Name,
+		Category:        categoryName,
+		Price:           menuItem.Price,
+		Status:          displayStatus,
+		LastUpdate:      lastUpdate,
+		ChefRecommended: menuItem.IsChefRecommended,
+		ImageURL:        primaryImageURL,
+		Description:     menuItem.Description,
+		PreparationTime: menuItem.PrepTimeMinutes,
+		Images:          imageRequests,
+		Modifiers:       modifiersDetailed,
+		Reviews:         reviews,
+	}
+
+	return response, nil
+}
+
+// getMenuItemModifiersDetailed - Fetch modifiers with full options for a menu item
+func (s *Service) getMenuItemModifiersDetailed(ctx context.Context, menuItemID int) ([]models.MenuItemModifierDetailed, error) {
+	// Get menu item modifier group associations
+	associationFilters := []repositories.Clause{
+		func(tx *gorm.DB) {
+			tx.Where("menu_item_id = ?", menuItemID)
+		},
+	}
+
+	associations, err := s.menuItemModifierGroupRepo.List(ctx, models.QueryParams{}, associationFilters...)
+	if err != nil || len(associations) == 0 {
+		return []models.MenuItemModifierDetailed{}, nil
+	}
+
+	// Extract group IDs
+	groupIDs := make([]int, 0, len(associations))
+	for _, assoc := range associations {
+		groupIDs = append(groupIDs, assoc.GroupID)
+	}
+
+	// Fetch modifier groups with their options
+	groupFilters := []repositories.Clause{
+		func(tx *gorm.DB) {
+			tx.Where("id IN ?", groupIDs)
+		},
+	}
+
+	groups, err := s.modifierGroupRepo.List(ctx, models.QueryParams{}, groupFilters...)
+	if err != nil || len(groups) == 0 {
+		return []models.MenuItemModifierDetailed{}, nil
+	}
+
+	// Fetch options for all groups
+	optionFilters := []repositories.Clause{
+		func(tx *gorm.DB) {
+			tx.Where("group_id IN ? AND status = ?", groupIDs, "active")
+		},
+	}
+
+	options, err := s.modifierOptionRepo.List(ctx, models.QueryParams{}, optionFilters...)
+	if err != nil {
+		options = []*models.ModifierOption{}
+	}
+
+	// Group options by group ID
+	optionsByGroup := make(map[int][]*models.ModifierOption)
+	for _, option := range options {
+		optionsByGroup[option.GroupID] = append(optionsByGroup[option.GroupID], option)
+	}
+
+	// Build result
+	result := make([]models.MenuItemModifierDetailed, 0, len(groups))
+	for _, group := range groups {
+		groupOptions := optionsByGroup[group.ID]
+
+		// Convert options to response format
+		options := make([]models.MenuItemModifierOption, 0, len(groupOptions))
+		for _, opt := range groupOptions {
+			options = append(options, models.MenuItemModifierOption{
+				ID:              opt.ID,
+				Name:            opt.Name,
+				PriceAdjustment: opt.PriceAdjustment,
+			})
+		}
+
+		result = append(result, models.MenuItemModifierDetailed{
+			ID:            group.ID,
+			Name:          group.Name,
+			SelectionType: group.SelectionType,
+			IsRequired:    group.IsRequired,
+			Options:       options,
+		})
+	}
+
+	return result, nil
+}
+
 func (s *Service) CreateMenuItem(ctx context.Context, request *models.CreateMenuItemRequest) (*models.MenuItem, error) {
 	category, err := s.menuCategoryRepo.GetByID(ctx, request.CategoryID)
 	if err != nil {
