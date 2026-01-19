@@ -919,3 +919,166 @@ func (s *Service) CreateOrderReview(ctx context.Context, orderID int, customerID
 		"status":        "published",
 	}, nil
 }
+
+// GetOrderItemsSummaryByCategory - TASK-010: Get items summary grouped by category for kitchen station
+func (s *Service) GetOrderItemsSummaryByCategory(ctx context.Context) ([]*models.OrderItemsSummaryResponse, error) {
+	// Get active orders only (pending, accepted, preparing)
+	orders, err := s.orderRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("status IN ?", []string{"pending", "accepted", "preparing"}).
+			Preload("Table")
+	})
+	if err != nil || len(orders) == 0 {
+		return []*models.OrderItemsSummaryResponse{}, err
+	}
+
+	// Get order items for these orders (excluding cancelled and completed)
+	var orderIDs []int
+	for _, order := range orders {
+		orderIDs = append(orderIDs, order.ID)
+	}
+
+	orderItems, err := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("order_id IN ? AND status NOT IN ?", orderIDs, []string{"cancelled", "completed"}).
+			Preload("Modifiers")
+	})
+	if err != nil || len(orderItems) == 0 {
+		return []*models.OrderItemsSummaryResponse{}, err
+	}
+
+	// Map items to orders for easier processing
+	orderItemsMap := make(map[int][]*models.OrderItem)
+	for _, item := range orderItems {
+		orderItemsMap[item.OrderID] = append(orderItemsMap[item.OrderID], item)
+	}
+
+	menuItemIDSet := make(map[int]bool)
+	for _, items := range orderItemsMap {
+		for _, item := range items {
+			menuItemIDSet[*item.MenuItemID] = true
+		}
+	}
+
+	menuItemIDs := make([]int, 0, len(menuItemIDSet))
+	for id := range menuItemIDSet {
+		menuItemIDs = append(menuItemIDs, id)
+	}
+
+	// Fetch menu items with categories
+	menuItems, err := s.menuItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("id IN ?", menuItemIDs).
+			Preload("Category")
+	})
+	if err != nil {
+		menuItems = []*models.MenuItem{}
+		return nil, err
+	}
+
+	// Build map of menu item to category
+	itemCategoryMap := make(map[int]string)
+	for _, item := range menuItems {
+		if item.Category != nil {
+			itemCategoryMap[item.ID] = item.Category.Name
+		}
+	}
+
+	// Group items by (menu_item_id, category)
+	// Structure: map[category]map[menu_item_id]ItemData
+	categoryItemsMap := make(map[string]map[int]*models.OrderItemSummaryWithTable)
+
+	for _, order := range orders {
+		items := orderItemsMap[order.ID]
+		for _, item := range items {
+			category := itemCategoryMap[*item.MenuItemID]
+			if category == "" {
+				category = "Other"
+			}
+
+			// Initialize category map if needed
+			if categoryItemsMap[category] == nil {
+				categoryItemsMap[category] = make(map[int]*models.OrderItemSummaryWithTable)
+			}
+
+			// Initialize item if needed
+			if categoryItemsMap[category][*item.MenuItemID] == nil {
+				categoryItemsMap[category][*item.MenuItemID] = &models.OrderItemSummaryWithTable{
+					ItemID:      item.ID,
+					MenuItemID:  *item.MenuItemID,
+					ItemName:    item.ItemName,
+					TotalQty:    0,
+					OrderTables: []models.OrderItemTableInfo{},
+				}
+			}
+
+			// Add to total quantity
+			categoryItemsMap[category][*item.MenuItemID].TotalQty += item.Quantity
+
+			// Add table info
+			tableNumber := "Unknown"
+			if order.Table != nil {
+				tableNumber = fmt.Sprintf("Table %d", order.Table.TableNumber)
+			}
+
+			categoryItemsMap[category][*item.MenuItemID].OrderTables = append(
+				categoryItemsMap[category][*item.MenuItemID].OrderTables,
+				models.OrderItemTableInfo{
+					OrderID:     order.ID,
+					TableID:     order.TableID,
+					TableNumber: tableNumber,
+					Quantity:    item.Quantity,
+					Status:      item.Status,
+				},
+			)
+		}
+	}
+
+	// Build response
+	result := make([]*models.OrderItemsSummaryResponse, 0)
+
+	// Define category order
+	categoryOrder := []string{"Appetizer", "Soup", "Salad", "Main Course", "Side", "Dessert", "Beverage", "Other"}
+	categoryMap := make(map[string]bool)
+	for _, cat := range categoryOrder {
+		if len(categoryItemsMap[cat]) > 0 {
+			categoryMap[cat] = true
+		}
+	}
+
+	for _, cat := range categoryOrder {
+		if !categoryMap[cat] {
+			continue
+		}
+
+		items := make([]models.OrderItemSummaryWithTable, 0)
+		for _, itemSummary := range categoryItemsMap[cat] {
+			items = append(items, *itemSummary)
+		}
+
+		result = append(result, &models.OrderItemsSummaryResponse{
+			Category: cat,
+			Items:    items,
+		})
+	}
+
+	// Add any remaining categories not in order
+	for cat, items := range categoryItemsMap {
+		found := false
+		for _, orderedCat := range categoryOrder {
+			if cat == orderedCat {
+				found = true
+				break
+			}
+		}
+		if !found && len(items) > 0 {
+			itemsList := make([]models.OrderItemSummaryWithTable, 0)
+			for _, itemSummary := range items {
+				itemsList = append(itemsList, *itemSummary)
+			}
+			result = append(result, &models.OrderItemsSummaryResponse{
+				Category: cat,
+				Items:    itemsList,
+			})
+		}
+	}
+
+	return result, nil
+}

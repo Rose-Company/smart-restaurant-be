@@ -266,3 +266,15 @@ func (h *Handler) CreateOrderReview(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, common.BaseResponseMess(http.StatusCreated, "Review submitted successfully", result))
 }
+
+// GetOrderItemsSummaryByCategory handles GET /api/orders/items-summary
+// TASK-010: Get items summary grouped by category for kitchen station
+func (h *Handler) GetOrderItemsSummaryByCategory(c *gin.Context) {
+	result, err := h.service.GetOrderItemsSummaryByCategory(c.Request.Context())
+	if err != nil {
+		common.AbortWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Items summary retrieved successfully", result))
+}

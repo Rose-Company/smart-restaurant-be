@@ -74,18 +74,19 @@ type UpdateMenuCategoryStatusRequest struct {
 }
 
 type MenuItem struct {
-	ID                int        `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
-	RestaurantID      int        `json:"restaurant_id" gorm:"column:restaurant_id"`
-	CategoryID        int        `json:"category_id" gorm:"column:category_id"`
-	Name              string     `json:"name" gorm:"column:name"`
-	Description       *string    `json:"description,omitempty" gorm:"column:description"`
-	Price             float64    `json:"price" gorm:"column:price"`
-	PrepTimeMinutes   int        `json:"prep_time_minutes" gorm:"column:prep_time_minutes"`
-	Status            string     `json:"status" gorm:"column:status"`
-	IsChefRecommended bool       `json:"is_chef_recommended" gorm:"column:is_chef_recommended"`
-	IsDeleted         bool       `json:"is_deleted" gorm:"column:is_deleted"`
-	CreatedAt         *time.Time `json:"created_at,omitempty" gorm:"column:created_at"`
-	UpdatedAt         *time.Time `json:"updated_at,omitempty" gorm:"column:updated_at"`
+	ID                int           `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	RestaurantID      int           `json:"restaurant_id" gorm:"column:restaurant_id"`
+	CategoryID        int           `json:"category_id" gorm:"column:category_id"`
+	Category          *MenuCategory `json:"category,omitempty" gorm:"foreignKey:CategoryID"`
+	Name              string        `json:"name" gorm:"column:name"`
+	Description       *string       `json:"description,omitempty" gorm:"column:description"`
+	Price             float64       `json:"price" gorm:"column:price"`
+	PrepTimeMinutes   int           `json:"prep_time_minutes" gorm:"column:prep_time_minutes"`
+	Status            string        `json:"status" gorm:"column:status"`
+	IsChefRecommended bool          `json:"is_chef_recommended" gorm:"column:is_chef_recommended"`
+	IsDeleted         bool          `json:"is_deleted" gorm:"column:is_deleted"`
+	CreatedAt         *time.Time    `json:"created_at,omitempty" gorm:"column:created_at"`
+	UpdatedAt         *time.Time    `json:"updated_at,omitempty" gorm:"column:updated_at"`
 }
 
 func (MenuItem) TableName() string {
