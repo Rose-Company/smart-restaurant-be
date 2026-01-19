@@ -45,6 +45,8 @@ type Order struct {
 	CancelledAt         *time.Time  `json:"cancelled_at" gorm:"column:cancelled_at"`
 	CancelledBy         *string     `json:"cancelled_by" gorm:"column:cancelled_by"`
 	CancelReason        *string     `json:"cancel_reason" gorm:"column:cancel_reason;type:text"`
+	IsReadyToBill       bool        `json:"is_ready_to_bill" gorm:"column:is_ready_to_bill;default:false"`
+	IsHelpNeeded        bool        `json:"is_help_needed" gorm:"column:is_help_needed;default:false"`
 	Items               []OrderItem `json:"items,omitempty" gorm:"foreignKey:OrderID"`
 }
 
@@ -194,13 +196,15 @@ type CreateAlertRequest struct {
 
 type ListOrdersRequest struct {
 	BaseRequestParamsUri
-	Role     *string `form:"role"`
-	Status   *string `form:"status"`
-	DateFrom *string `form:"date_from"`
-	DateTo   *string `form:"date_to"`
-	TableID  *int    `form:"table_id"`
-	Search   *string `form:"search"`
-	Category *string `form:"category"`
+	Role          *string `form:"role"`
+	Status        *string `form:"status"`
+	DateFrom      *string `form:"date_from"`
+	DateTo        *string `form:"date_to"`
+	TableID       *int    `form:"table_id"`
+	Search        *string `form:"search"`
+	Category      *string `form:"category"`
+	IsReadyToBill *bool   `form:"is_ready_to_bill"`
+	IsHelpNeeded  *bool   `form:"is_help_needed"`
 }
 
 // Response models
@@ -224,6 +228,8 @@ type OrderResponse struct {
 	EstimatedReadyTime  *time.Time              `json:"estimated_ready_time,omitempty"`
 	WaiterID            *string                 `json:"waiter_id,omitempty"`
 	WaiterName          *string                 `json:"waiter_name,omitempty"`
+	IsReadyToBill       bool                    `json:"is_ready_to_bill"`
+	IsHelpNeeded        bool                    `json:"is_help_needed"`
 	Items               []OrderItemResponse     `json:"items"`
 	Timeline            []OrderTimelineResponse `json:"timeline,omitempty"`
 	Bill                *BillSummary            `json:"bill,omitempty"`
@@ -245,6 +251,8 @@ type OrderListItemResponse struct {
 	EstimatedReadyTime *time.Time          `json:"estimated_ready_time,omitempty"`
 	WaiterID           *string             `json:"waiter_id,omitempty"`
 	WaiterName         *string             `json:"waiter_name,omitempty"`
+	IsReadyToBill      bool                `json:"is_ready_to_bill"`
+	IsHelpNeeded       bool                `json:"is_help_needed"`
 }
 
 type OrderItemResponse struct {

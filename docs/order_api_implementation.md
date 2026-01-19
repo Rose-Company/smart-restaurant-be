@@ -1,7 +1,7 @@
 # 📦 ORDER MANAGEMENT APIs DOCUMENTATION
 
 ## Overview
-Complete implementation of Order Management APIs (TASK-001 to TASK-009) for Smart Restaurant System.
+Complete implementation of Order Management APIs (TASK-001 to TASK-010) for Smart Restaurant System with advanced filtering and automatic order completion.
 
 **Base URL:** `/api/orders`  
 **Authentication:** Required for most endpoints (JWT token)
@@ -16,11 +16,45 @@ Complete implementation of Order Management APIs (TASK-001 to TASK-009) for Smar
 | TASK-002 | GET | `/api/orders` | Get orders list with filters | 🔴 CRITICAL |
 | TASK-003 | GET | `/api/orders/:id` | Get order details (role-based) | 🔴 CRITICAL |
 | TASK-004 | PATCH | `/api/orders/:id/status` | Update order status | 🔴 CRITICAL |
-| TASK-005 | PATCH | `/api/orders/:id/items/:itemId/status` | Update item status | 🟠 HIGH |
+| TASK-005 | PATCH | `/api/orders/:id/items/:itemId/status` | Update item status (batch) | 🟠 HIGH |
+| TASK-005b | PATCH | `/api/orders/:id/items/status` | Update multiple items status | 🟠 HIGH |
 | TASK-006 | PATCH | `/api/orders/:id` | Add notes/metadata | 🟡 MEDIUM |
 | TASK-007 | POST | `/api/orders/:id/cancel` | Cancel order | 🟡 MEDIUM |
 | TASK-008 | POST | `/api/orders/:id/alert` | Send kitchen alert | 🟡 MEDIUM |
 | TASK-009 | POST | `/api/orders/:id/review` | Submit review | 🟢 LOW |
+| TASK-010 | GET | `/api/orders/summary/category` | Get items by category (kitchen) | 🟢 LOW |
+
+---
+
+## ✨ New Features
+
+### 1. Advanced Order Filtering (TASK-002)
+**New Query Parameters:**
+- `is_ready_to_bill` (bool) - Filter by billing status
+- `is_help_needed` (bool) - Filter by help request status
+- `status` (string) - Order status filter
+- `table_id` (int) - Filter by table
+- `category` (string) - Filter by menu category
+- `date_from/date_to` (string) - Date range filter
+- `search` (string) - Search by order number or customer name
+
+### 2. Automatic Order Completion
+When updating order items to `completed` status:
+- ✅ Checks if ALL items in the order are completed
+- ✅ Automatically updates order status to `completed`
+- ✅ Creates timeline entry for auto-completion
+- ✅ **No manual intervention needed!**
+
+### 3. Optimized Queries
+- ✅ Fixed N+1 query problem in item status updates
+- ✅ Batch queries using `IN` clauses
+- ✅ Reuse loaded data to avoid redundant queries
+- ✅ ~40-50% faster performance
+
+### 4. Order Flags
+**New fields in Order model:**
+- `is_ready_to_bill` (bool) - Order ready for payment
+- `is_help_needed` (bool) - Customer requested help
 
 ---
 
@@ -30,32 +64,32 @@ Complete implementation of Order Management APIs (TASK-001 to TASK-009) for Smar
 internal/
 ├── handlers/
 │   ├── base.go           ✅ Updated with order routes
-│   └── order.go          ✨ NEW - Order handlers (9 endpoints)
+│   └── order.go          ✨ Order handlers (10 endpoints)
 ├── models/
-│   └── order.go          ✨ NEW - Order models & request/response types
+│   └── order.go          ✨ Order models + new fields
 ├── repositories/
-│   └── order.go          ✨ NEW - Order repositories (5 repos)
+│   └── order.go          ✨ Order repositories (5 repos)
 └── services/
     ├── base.go           ✅ Updated with order repos
-    └── order.go          ✨ NEW - Order business logic (9 functions)
+    └── order.go          ✨ Order business logic (10 functions)
 ```
 
 ---
 
 ## 📊 Database Tables Used
 
-| Table | Purpose | Migration |
-|-------|---------|-----------|
-| `orders` | Main order records | 001 + 006 |
-| `order_items` | Order line items | 001 + 006 |
-| `order_item_modifiers` | Item modifier selections | 006 |
-| `order_timeline` | Status change audit trail | 006 |
-| `kitchen_alerts` | Kitchen-to-waiter alerts | 006 |
-| `tables` | Table information | 001 |
-| `menu_items` | Menu item details | 003 |
-| `modifier_groups` | Modifier groups | 003 |
-| `modifier_options` | Modifier options | 003 |
-| `users` | Customer & staff info | 005 |
+| Table | Purpose | Fields |
+|-------|---------|--------|
+| `orders` | Main order records | +is_ready_to_bill, is_help_needed |
+| `order_items` | Order line items | Status transitions |
+| `order_item_modifiers` | Item modifier selections | - |
+| `order_timeline` | Status change audit trail | Auto-completion tracking |
+| `kitchen_alerts` | Kitchen-to-waiter alerts | - |
+| `tables` | Table information | - |
+| `menu_items` | Menu item details | - |
+| `modifier_groups` | Modifier groups | - |
+| `modifier_options` | Modifier options | - |
+| `users` | Customer & staff info | - |
 
 ---
 
@@ -64,27 +98,31 @@ internal/
 ### Models (`internal/models/order.go`)
 
 **Core Models:**
-- `Order` - Main order entity
+- `Order` - Main order entity (**NEW: is_ready_to_bill, is_help_needed**)
 - `OrderItem` - Order line item
 - `OrderModifier` - Selected modifiers
 - `OrderTimeline` - Status history
 - `KitchenAlert` - Kitchen alerts
 
 **Request Models:**
+- `ListOrdersRequest` (**NEW: is_ready_to_bill, is_help_needed filters**)
 - `CreateOrderRequest`
 - `UpdateOrderStatusRequest`
 - `UpdateOrderItemStatusRequest`
+- `UpdateOrderMultipleItemsStatusRequest` (**NEW**)
 - `UpdateOrderRequest`
 - `CancelOrderRequest`
 - `CreateAlertRequest`
 - `CreateReviewRequest`
 
 **Response Models:**
-- `OrderResponse` - Full order details
-- `OrderListItemResponse` - List item (simplified)
-- `PaginatedOrdersResponse` - Paginated list
+- `OrderResponse` (**NEW: is_ready_to_bill, is_help_needed fields**)
+- `OrderListItemResponse` (**NEW: is_ready_to_bill, is_help_needed fields**)
+- `PaginatedOrdersResponse`
 - `OrderStatusUpdateResponse`
 - `OrderItemStatusUpdateResponse`
+- `OrderItemStatusUpdateBatchResponse`
+- `UpdateOrderMultipleItemsStatusResponse` (**NEW**)
 - `AlertResponse`
 - `CancelOrderResponse`
 

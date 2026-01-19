@@ -134,6 +134,9 @@ type PaymentResponse struct {
 	ChangeAmount          *float64   `json:"change_amount,omitempty"`
 	CreatedAt             time.Time  `json:"created_at"`
 	ProcessedAt           *time.Time `json:"processed_at"`
+	TableID               *int       `json:"table_id,omitempty"`
+	QrToken               *string    `json:"qr_token,omitempty"`
+	QrTokenExpiresAt      *time.Time `json:"qr_token_expires_at,omitempty"`
 }
 
 // PaymentStatusResponse represents the response for payment status check

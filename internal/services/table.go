@@ -117,6 +117,221 @@ func (s *Service) GetTables(ctx context.Context, request *models.ListTablesReque
 	}, nil
 }
 
+// GetTablesForStaff - Get tables with orders for staff view (waiter/kitchen)
+// Filter by is_help_needed and is_ready_to_bill
+func (s *Service) GetTablesForStaff(ctx context.Context, request *models.ListTablesForStaffRequest) (*models.BaseListResponse, error) {
+	page, pageSize := utils.GetPageAndPageSize(request.Page, request.PageSize)
+
+	// Get all occupied tables
+	allTables, err := s.tableRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("status = ?", "occupied")
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if len(allTables) == 0 {
+		return &models.BaseListResponse{
+			Total:    0,
+			Page:     page,
+			PageSize: pageSize,
+			Items:    []models.TableForStaffResponse{},
+		}, nil
+	}
+
+	// Extract table IDs for batch query
+	tableIDs := make([]int, 0, len(allTables))
+	for _, t := range allTables {
+		tableIDs = append(tableIDs, t.ID)
+	}
+
+	// Get ALL orders for all tables in ONE query
+	allOrders, err := s.orderRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("table_id IN ? AND status NOT IN ?", tableIDs, []string{"completed", "cancelled"})
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Group orders by table_id
+	ordersByTableID := make(map[int][]*models.Order)
+	orderIDs := make([]int, 0)
+	for _, order := range allOrders {
+		ordersByTableID[order.TableID] = append(ordersByTableID[order.TableID], order)
+		orderIDs = append(orderIDs, order.ID)
+	}
+
+	// Get ALL order items in ONE query
+	var allOrderItems []*models.OrderItem
+	if len(orderIDs) > 0 {
+		allOrderItems, err = s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+			tx.Where("order_id IN ? AND status NOT IN ?", orderIDs, []string{"cancelled"})
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Group order items by order_id
+	itemsByOrderID := make(map[int][]*models.OrderItem)
+	for _, item := range allOrderItems {
+		itemsByOrderID[item.OrderID] = append(itemsByOrderID[item.OrderID], item)
+	}
+
+	// Filter tables based on order flags
+	var filteredTableIDs []int
+	for _, table := range allTables {
+		orders := ordersByTableID[table.ID]
+		if len(orders) == 0 {
+			continue
+		}
+
+		// Check if table matches filter criteria
+		shouldInclude := false
+
+		if request.IsReadyToBill == nil && request.IsHelpNeeded == nil {
+			// No filter, include all occupied tables with active orders
+			shouldInclude = true
+		} else if request.IsReadyToBill != nil && *request.IsReadyToBill {
+			// Filter by is_ready_to_bill = true
+			for _, order := range orders {
+				if order.IsReadyToBill {
+					shouldInclude = true
+					break
+				}
+			}
+		} else if request.IsHelpNeeded != nil && *request.IsHelpNeeded {
+			// Filter by is_help_needed = true
+			for _, order := range orders {
+				if order.IsHelpNeeded {
+					shouldInclude = true
+					break
+				}
+			}
+		} else if (request.IsReadyToBill != nil && !*request.IsReadyToBill) || (request.IsHelpNeeded != nil && !*request.IsHelpNeeded) {
+			// Filter by both false (kitchen ready)
+			allFalse := true
+			for _, order := range orders {
+				if order.IsReadyToBill || order.IsHelpNeeded {
+					allFalse = false
+					break
+				}
+			}
+			if allFalse {
+				shouldInclude = true
+			}
+		}
+
+		if shouldInclude {
+			filteredTableIDs = append(filteredTableIDs, table.ID)
+		}
+	}
+
+	// Apply pagination
+	totalCount := int64(len(filteredTableIDs))
+	if totalCount == 0 {
+		return &models.BaseListResponse{
+			Total:    0,
+			Page:     page,
+			PageSize: pageSize,
+			Items:    []models.TableForStaffResponse{},
+		}, nil
+	}
+
+	// Get paginated table IDs
+	startIdx := (page - 1) * pageSize
+	endIdx := startIdx + pageSize
+	if endIdx > len(filteredTableIDs) {
+		endIdx = len(filteredTableIDs)
+	}
+
+	paginatedTableIDs := filteredTableIDs[startIdx:endIdx]
+
+	// Build response with detailed order information using pre-loaded data
+	items := make([]models.TableForStaffResponse, 0, len(paginatedTableIDs))
+	for _, tableID := range paginatedTableIDs {
+		var table *models.Table
+		for _, t := range allTables {
+			if t.ID == tableID {
+				table = t
+				break
+			}
+		}
+		if table == nil {
+			continue
+		}
+
+		// Get orders for this table from pre-loaded data
+		orders := ordersByTableID[tableID]
+		if len(orders) == 0 {
+			continue
+		}
+
+		// Build order summaries with items using pre-loaded data
+		orderSummaries := make([]models.TableOrderSummary, 0)
+		totalBill := 0.0
+		var customerName string
+
+		for _, order := range orders {
+			// Get order items from pre-loaded data
+			orderItems := itemsByOrderID[order.ID]
+
+			if order.CustomerName != nil {
+				customerName = *order.CustomerName
+			}
+
+			// Build item summaries
+			itemSummaries := make([]models.OrderItemSummary, 0)
+			for _, item := range orderItems {
+				itemSummaries = append(itemSummaries, models.OrderItemSummary{
+					ID:        item.ID,
+					ItemName:  item.ItemName,
+					Quantity:  item.Quantity,
+					UnitPrice: item.UnitPrice,
+					Status:    item.Status,
+				})
+			}
+
+			orderSummaries = append(orderSummaries, models.TableOrderSummary{
+				ID:            order.ID,
+				OrderNumber:   order.OrderNumber,
+				Status:        order.Status,
+				TotalAmount:   order.Total,
+				IsReadyToBill: order.IsReadyToBill,
+				IsHelpNeeded:  order.IsHelpNeeded,
+				ItemsCount:    len(orderItems),
+				Items:         itemSummaries,
+				CreatedAt:     order.CreatedAt,
+				CustomerName:  customerName,
+			})
+
+			totalBill += order.Total
+		}
+
+		tableResponse := models.TableForStaffResponse{
+			ID:                int(table.ID),
+			TableNumber:       table.TableNumber,
+			Capacity:          table.Capacity,
+			Location:          table.Location,
+			Status:            table.Status,
+			Orders:            orderSummaries,
+			ActiveOrdersCount: len(orders),
+			TotalBill:         totalBill,
+			CreatedAt:         table.CreatedAt,
+			UpdatedAt:         table.UpdatedAt,
+		}
+
+		items = append(items, tableResponse)
+	}
+
+	return &models.BaseListResponse{
+		Total:    int(totalCount),
+		Page:     page,
+		PageSize: pageSize,
+		Items:    items,
+	}, nil
+}
+
 func (s *Service) getTableOrderData(ctx context.Context, tableID int) (*models.TableOrderData, error) {
 	var result struct {
 		ActiveOrders int     `gorm:"column:active_orders"`
@@ -285,6 +500,11 @@ func generateSecureToken(n int) (string, error) {
 	return hex.EncodeToString(b), nil
 }
 
+// GenerateSecureToken - Public function to generate secure tokens (used by payment service)
+func GenerateSecureToken(n int) (string, error) {
+	return generateSecureToken(n)
+}
+
 func (s *Service) GetAllTables(ctx context.Context) ([]*models.Table, error) {
 	return s.tableRepo.GetAll(ctx, models.QueryParams{})
 }
@@ -299,5 +519,73 @@ func (s *Service) GetQrCodeByTableID(ctx context.Context, tableID int) (*models.
 		Token:     table.QrToken,
 		CreatedAt: table.QrTokenCreatedAt,
 		ExpiresAt: table.QrTokenExpiresAt,
+	}, nil
+}
+
+// GetTableDetailForStaff - Get table details with all order items for staff view
+func (s *Service) GetTableDetailForStaff(ctx context.Context, tableID int) (*models.TableDetailForStaffResponse, error) {
+	// Get table
+	table, err := s.tableRepo.GetByID(ctx, tableID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get all orders for this table (including completed/cancelled)
+	allOrders, err := s.orderRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("table_id = ?", tableID)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// Extract order IDs for batch query
+	orderIDs := make([]int, 0, len(allOrders))
+	for _, order := range allOrders {
+		orderIDs = append(orderIDs, order.ID)
+	}
+
+	// Get all order items for all orders in ONE query
+	var orderItems []*models.OrderItem
+	if len(orderIDs) > 0 {
+		orderItems, err = s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+			tx.Where("order_id IN ?", orderIDs)
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Build response with order items
+	itemResponses := make([]models.OrderItemDetailForStaff, 0)
+	totalBill := 0.0
+
+	for _, order := range allOrders {
+		// Get items for this order from the loaded data
+		for _, item := range orderItems {
+			if item.OrderID == order.ID {
+				itemResponses = append(itemResponses, models.OrderItemDetailForStaff{
+					ID:        item.ID,
+					OrderID:   item.OrderID,
+					ItemName:  item.ItemName,
+					Quantity:  item.Quantity,
+					UnitPrice: item.UnitPrice,
+					Status:    item.Status,
+				})
+			}
+		}
+		totalBill += order.Total
+	}
+
+	return &models.TableDetailForStaffResponse{
+		ID:             table.ID,
+		TableNumber:    table.TableNumber,
+		Capacity:       table.Capacity,
+		Location:       table.Location,
+		Status:         table.Status,
+		GuestCount:     table.Capacity,
+		TotalBill:      totalBill,
+		OrderItems:     itemResponses,
+		AllOrdersCount: len(allOrders),
+		CreatedAt:      table.CreatedAt,
 	}, nil
 }

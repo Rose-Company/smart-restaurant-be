@@ -66,12 +66,62 @@ func (BillItem) TableName() string {
 // REQUEST/RESPONSE MODELS
 // ============================================
 
-// CreateBillRequest represents the request to create a bill from an order
+// CreateBillRequest represents the request to create a bill from a table
+// Bill includes all orders and items on the table
 type CreateBillRequest struct {
-	OrderID      int     `json:"order_id" binding:"required,min=1"`
+	TableID      int     `json:"table_id" binding:"required,min=1"`
 	Type         string  `json:"type" binding:"required,oneof=generated request manual"`
 	RequestedBy  string  `json:"requested_by" binding:"required,oneof=customer waiter system"`
 	DiscountCode *string `json:"discount_code"`
+}
+
+// OrderItemForBill - Order item with order info for bill display
+type OrderItemForBill struct {
+	ID        int     `json:"id"`
+	OrderID   int     `json:"order_id"`
+	ItemName  string  `json:"item_name"`
+	Quantity  int     `json:"quantity"`
+	UnitPrice float64 `json:"unit_price"`
+	Status    string  `json:"status"`
+}
+
+// OrderForBill - Order with items for bill display
+type OrderForBill struct {
+	ID          int                `json:"id"`
+	OrderNumber string             `json:"order_number"`
+	Status      string             `json:"status"`
+	TotalAmount float64            `json:"total_amount"`
+	Items       []OrderItemForBill `json:"items"`
+}
+
+// BillDetailResponse - Detailed bill response with table, all orders, and all items
+type BillDetailResponse struct {
+	ID             int            `json:"id"`
+	BillNumber     string         `json:"bill_number"`
+	TableID        *int           `json:"table_id"`
+	TableNumber    *string        `json:"table_number"`
+	RestaurantID   *int           `json:"restaurant_id"`
+	CustomerID     *string        `json:"customer_id"`
+	CustomerName   *string        `json:"customer_name"`
+	CustomerPhone  *string        `json:"customer_phone"`
+	Orders         []OrderForBill `json:"orders"`
+	OrdersCount    int            `json:"orders_count"`
+	ItemsCount     int            `json:"items_count"`
+	Subtotal       float64        `json:"subtotal"`
+	TaxAmount      float64        `json:"tax_amount"`
+	TaxRate        *float64       `json:"tax_rate"`
+	DiscountAmount float64        `json:"discount_amount"`
+	DiscountCode   *string        `json:"discount_code"`
+	ServiceCharge  float64        `json:"service_charge"`
+	TotalAmount    float64        `json:"total_amount"`
+	Status         string         `json:"status"`
+	Type           string         `json:"type"`
+	PaymentMethod  *string        `json:"payment_method"`
+	RequestedBy    *string        `json:"requested_by"`
+	CreatedAt      time.Time      `json:"created_at"`
+	UpdatedAt      *time.Time     `json:"updated_at"`
+	PaidAt         *time.Time     `json:"paid_at"`
+	Breakdown      *BillBreakdown `json:"breakdown,omitempty"`
 }
 
 // BillResponse represents the response with bill details
@@ -130,7 +180,7 @@ type UpdateBillRequest struct {
 	DiscountCode   *string  `json:"discount_code"`
 	DiscountAmount *float64 `json:"discount_amount"`
 	Status         *string  `json:"status" binding:"omitempty,oneof=pending paid cancelled refunded"`
-	PaymentMethod  *string  `json:"payment_method" binding:"omitempty,oneof=cash card ewallet stripe other"`
+	PaymentMethod  *string  `json:"payment_method" binding:"omitempty,oneof=cash card ewallet vnpay stripe other"`
 }
 
 // GetBillRequest represents query params for getting a bill

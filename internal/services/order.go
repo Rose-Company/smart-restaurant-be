@@ -283,6 +283,19 @@ func (s *Service) GetOrders(ctx context.Context, request *models.ListOrdersReque
 		}
 	}
 
+	if request.IsReadyToBill != nil {
+		filters = append(filters, func(tx *gorm.DB) {
+			tx.Where("is_ready_to_bill = ?", *request.IsReadyToBill)
+		})
+	}
+
+	// Filter by is_help_needed
+	if request.IsHelpNeeded != nil {
+		filters = append(filters, func(tx *gorm.DB) {
+			tx.Where("is_help_needed = ?", *request.IsHelpNeeded)
+		})
+	}
+
 	// Sorting
 	sortOrder := "created_at DESC"
 	if request.Sort != "" {
@@ -418,6 +431,8 @@ func (s *Service) GetOrders(ctx context.Context, request *models.ListOrdersReque
 			EstimatedReadyTime: order.EstimatedReadyTime,
 			WaiterID:           order.WaiterID,
 			WaiterName:         waiterName,
+			IsReadyToBill:      order.IsReadyToBill,
+			IsHelpNeeded:       order.IsHelpNeeded,
 		})
 	}
 

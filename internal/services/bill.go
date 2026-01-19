@@ -2,82 +2,94 @@ package services
 
 import (
 	"app-noti/common"
+	"app-noti/config"
 	"app-noti/internal/models"
+	"app-noti/services/digital_ocean_storage"
+	"bytes"
 	"context"
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/jung-kurt/gofpdf"
 	"gorm.io/gorm"
 )
 
-// CreateBill - TASK-010: Create bill from order
-// Creates a bill from an order with all line items and calculates totals
-func (s *Service) CreateBill(ctx context.Context, req *models.CreateBillRequest) (*models.BillResponse, error) {
-	// 1. Validate order exists and is in a valid state
-	order, err := s.orderRepo.GetByID(ctx, req.OrderID)
+// CreateBill - TASK-010: Create bill from table
+// Creates a bill from a table with all orders and items
+func (s *Service) CreateBill(ctx context.Context, req *models.CreateBillRequest) (*models.BillDetailResponse, error) {
+	// 1. Validate table exists
+	table, err := s.tableRepo.GetByID(ctx, req.TableID)
 	if err != nil {
-		return nil, common.ErrOrderNotFound
+		return nil, common.ErrTableNotFound
 	}
 
-	// 2. Get order items using repository method
-	orderItems, err := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
-		tx.Where("order_id = ?", req.OrderID)
+	// 2. Get all orders for this table (not completed/cancelled only)
+	allOrders, err := s.orderRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("table_id = ?", req.TableID)
 	})
-	if err != nil || len(orderItems) == 0 {
+	if err != nil || len(allOrders) == 0 {
 		return nil, common.ErrOrderNotFound
 	}
 
-	// 3. Calculate totals
+	// 3. Extract order IDs for batch query
+	orderIDs := make([]int, 0, len(allOrders))
+	for _, order := range allOrders {
+		orderIDs = append(orderIDs, order.ID)
+	}
+
+	// 4. Get ALL order items in ONE query
+	allOrderItems, err := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("order_id IN ?", orderIDs)
+	})
+	if err != nil || len(allOrderItems) == 0 {
+		return nil, common.ErrOrderNotFound
+	}
+
+	// 5. Calculate totals and group items by order
 	var subtotal float64
 	var modifiersTotal float64
-	billItems := make([]*models.BillItem, 0)
+	itemsByOrderID := make(map[int][]*models.OrderItem)
 
-	for _, item := range orderItems {
+	// Group items by order_id and calculate totals
+	for _, item := range allOrderItems {
+		itemsByOrderID[item.OrderID] = append(itemsByOrderID[item.OrderID], item)
 		subtotal += item.Subtotal
 		if item.ModifiersTotal > 0 {
 			modifiersTotal += item.ModifiersTotal
 		}
-
-		billItem := &models.BillItem{
-			MenuItemID:     item.MenuItemID,
-			MenuItemName:   item.ItemName,
-			Quantity:       item.Quantity,
-			UnitPrice:      item.UnitPrice,
-			ModifiersTotal: item.ModifiersTotal,
-			Subtotal:       item.Subtotal,
-		}
-		billItems = append(billItems, billItem)
 	}
 
-	// 4. Apply discount if provided
+	// 6. Apply discount if provided
 	var discountAmount float64 = 0
 	var discountCode *string
 	if req.DiscountCode != nil {
-		validatedDiscount, err := s.ValidateDiscountCode(ctx, *req.DiscountCode, req.OrderID, subtotal+modifiersTotal)
+		validatedDiscount, err := s.ValidateDiscountCode(ctx, *req.DiscountCode, 0, subtotal+modifiersTotal)
 		if err == nil && validatedDiscount != nil {
 			discountCode = req.DiscountCode
 			discountAmount = validatedDiscount.DiscountAmount
 		}
 	}
 
-	// 5. Calculate tax (assuming 10% tax rate from database default)
-	taxRate := 10.0
+	// 7. Calculate tax
+	taxRate := 8.0
 	subtotalAfterDiscount := subtotal + modifiersTotal - discountAmount
 	taxAmount := (subtotalAfterDiscount * taxRate) / 100
 
-	// 6. Calculate final total
+	// 8. Calculate final total
 	totalAmount := subtotalAfterDiscount + taxAmount
 
-	// 7. Generate bill number
+	// 9. Generate bill number
 	billNumber := common.GenerateBillNumber()
 
-	// 8. Create bill
+	// 10. Create bill at table level
+	firstOrderID := allOrders[0].ID
 	bill := &models.Bill{
 		BillNumber:     billNumber,
-		OrderID:        req.OrderID,
-		RestaurantID:   order.RestaurantID,
-		TableID:        &order.TableID,
-		CustomerID:     order.CustomerUserID,
+		OrderID:        firstOrderID,
+		RestaurantID:   &table.RestaurantId,
+		TableID:        &req.TableID,
 		Subtotal:       subtotal,
 		TaxAmount:      taxAmount,
 		TaxRate:        taxRate,
@@ -88,7 +100,6 @@ func (s *Service) CreateBill(ctx context.Context, req *models.CreateBillRequest)
 		Status:         "pending",
 		BillType:       req.Type,
 		RequestedBy:    &req.RequestedBy,
-		BillItems:      billItems,
 	}
 
 	createdBill, err := s.billRepo.Create(ctx, bill)
@@ -96,21 +107,12 @@ func (s *Service) CreateBill(ctx context.Context, req *models.CreateBillRequest)
 		return nil, err
 	}
 
-	// 9. Create bill items
-	for _, item := range billItems {
-		item.BillID = createdBill.ID
-	}
-	err = s.billItemRepo.CreatesMultiple(ctx, billItems)
-	if err != nil {
-		return nil, err
-	}
-
-	// 10. Build response
-	return s.buildBillResponse(ctx, createdBill)
+	// 11. Build detailed response with all orders and items
+	return s.buildBillDetailResponse(ctx, createdBill, allOrders, itemsByOrderID, table)
 }
 
-// GetBill - TASK-011: Get bill details
-// Retrieves bill details with optional format (json or pdf)
+// GetBill - TASK-011: Get bill details with all orders and items
+// Retrieves bill details including all orders and items on the table
 func (s *Service) GetBill(ctx context.Context, billID int, format string) (interface{}, error) {
 	// Get bill
 	bill, err := s.billRepo.GetByID(ctx, billID)
@@ -118,39 +120,86 @@ func (s *Service) GetBill(ctx context.Context, billID int, format string) (inter
 		return nil, common.ErrBillNotFound
 	}
 
-	// For JSON format, return full bill details
-	if format != "pdf" {
-		return s.buildBillResponse(ctx, bill)
+	// Get table
+	table, err := s.tableRepo.GetByID(ctx, *bill.TableID)
+	if err != nil {
+		return nil, err
 	}
 
-	// For PDF format, generate and return PDF URL
-	// In a real application, this would generate a PDF and upload it to storage
-	pdfURL := fmt.Sprintf("https://storage.example.com/bills/%s.pdf", bill.BillNumber)
-	expiresAt := time.Now().Add(24 * time.Hour)
+	// Get all orders for this table
+	allOrders, err := s.orderRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("table_id = ?", *bill.TableID)
+	})
+	if err != nil {
+		return nil, err
+	}
 
-	return &models.BillPDFResponse{
-		PdfURL:    pdfURL,
-		ExpiresAt: expiresAt,
-	}, nil
+	// Extract order IDs
+	orderIDs := make([]int, 0, len(allOrders))
+	for _, order := range allOrders {
+		orderIDs = append(orderIDs, order.ID)
+	}
+
+	// Get all order items
+	var allOrderItems []*models.OrderItem
+	if len(orderIDs) > 0 {
+		allOrderItems, err = s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+			tx.Where("order_id IN ?", orderIDs)
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Group items by order_id
+	itemsByOrderID := make(map[int][]*models.OrderItem)
+	for _, item := range allOrderItems {
+		itemsByOrderID[item.OrderID] = append(itemsByOrderID[item.OrderID], item)
+	}
+
+	// For PDF format, generate PDF and return URL
+	if format == "pdf" {
+		// Generate PDF
+		pdfBytes, err := s.generateBillPDF(ctx, bill, allOrders, itemsByOrderID, table)
+		if err != nil {
+			return nil, fmt.Errorf("failed to generate PDF: %w", err)
+		}
+
+		// Upload PDF to Digital Ocean
+		pdfURL, err := s.uploadBillPDF(bill.BillNumber, pdfBytes)
+		if err != nil {
+			return nil, fmt.Errorf("failed to upload PDF: %w", err)
+		}
+
+		expiresAt := time.Now().Add(24 * time.Hour)
+		return &models.BillPDFResponse{
+			PdfURL:    pdfURL,
+			ExpiresAt: expiresAt,
+		}, nil
+	}
+
+	// For JSON format, return full bill detail with all orders and items
+	return s.buildBillDetailResponse(ctx, bill, allOrders, itemsByOrderID, table)
 }
 
 // UpdateBill - TASK-012: Update bill (add discount, mark paid)
 // Updates bill with new discount or payment information
-func (s *Service) UpdateBill(ctx context.Context, billID int, req *models.UpdateBillRequest) (*models.BillResponse, error) {
+func (s *Service) UpdateBill(ctx context.Context, billID int, req *models.UpdateBillRequest) (*models.BillDetailResponse, error) {
 	// Get current bill
 	bill, err := s.billRepo.GetByID(ctx, billID)
 	if err != nil {
 		return nil, common.ErrBillNotFound
 	}
 
+	// Get table
+	table, err := s.tableRepo.GetByID(ctx, *bill.TableID)
+	if err != nil {
+		return nil, err
+	}
+
 	// Update discount if provided
 	if req.DiscountCode != nil {
-		_, err := s.orderRepo.GetByID(ctx, bill.OrderID)
-		if err != nil {
-			return nil, err
-		}
-
-		validatedDiscount, err := s.ValidateDiscountCode(ctx, *req.DiscountCode, bill.OrderID, bill.Subtotal)
+		validatedDiscount, err := s.ValidateDiscountCode(ctx, *req.DiscountCode, 0, bill.Subtotal)
 		if err == nil && validatedDiscount != nil {
 			bill.DiscountCode = req.DiscountCode
 			bill.DiscountAmount = validatedDiscount.DiscountAmount
@@ -189,51 +238,70 @@ func (s *Service) UpdateBill(ctx context.Context, billID int, req *models.Update
 		return nil, err
 	}
 
-	return s.buildBillResponse(ctx, updatedBill)
-}
-
-// Helper function to build bill response
-func (s *Service) buildBillResponse(ctx context.Context, bill *models.Bill) (*models.BillResponse, error) {
-	// Get order for order number and table info
-	order, err := s.orderRepo.GetByID(ctx, bill.OrderID)
+	// Get all orders for this table
+	allOrders, err := s.orderRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("table_id = ?", *bill.TableID)
+	})
 	if err != nil {
 		return nil, err
 	}
 
-	// Get table info
-	var tableName *string
-	if bill.TableID != nil {
-		table, err := s.tableRepo.GetByID(ctx, *bill.TableID)
-		if err == nil && table != nil {
-			tableName = &table.TableNumber
+	// Extract order IDs
+	orderIDs := make([]int, 0, len(allOrders))
+	for _, order := range allOrders {
+		orderIDs = append(orderIDs, order.ID)
+	}
+
+	// Get all order items
+	var allOrderItems []*models.OrderItem
+	if len(orderIDs) > 0 {
+		allOrderItems, err = s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+			tx.Where("order_id IN ?", orderIDs)
+		})
+		if err != nil {
+			return nil, err
 		}
 	}
 
-	// Get customer info
-	var customerName *string
-	var customerPhone *string
-	if bill.CustomerID != nil {
-		user, err := s.userRepo.GetByID(ctx, *bill.CustomerID)
-		if err == nil && user != nil {
-			fullName := fmt.Sprintf("%s %s", *user.FirstName, *user.LastName)
-			customerName = &fullName
-			customerPhone = &user.PhoneNumber
-		}
+	// Group items by order_id
+	itemsByOrderID := make(map[int][]*models.OrderItem)
+	for _, item := range allOrderItems {
+		itemsByOrderID[item.OrderID] = append(itemsByOrderID[item.OrderID], item)
 	}
 
-	// Build bill items response
-	billItems := make([]*models.BillItemResponse, 0)
-	if bill.BillItems != nil {
-		for _, item := range bill.BillItems {
-			billItems = append(billItems, &models.BillItemResponse{
-				ID:             item.ID,
-				MenuItemName:   item.MenuItemName,
-				Quantity:       item.Quantity,
-				UnitPrice:      item.UnitPrice,
-				ModifiersTotal: item.ModifiersTotal,
-				Subtotal:       item.Subtotal,
+	return s.buildBillDetailResponse(ctx, updatedBill, allOrders, itemsByOrderID, table)
+}
+
+// Helper function to build detailed bill response with all orders and items
+func (s *Service) buildBillDetailResponse(ctx context.Context, bill *models.Bill, allOrders []*models.Order, itemsByOrderID map[int][]*models.OrderItem, table *models.Table) (*models.BillDetailResponse, error) {
+	// Build orders with items
+	ordersForBill := make([]models.OrderForBill, 0)
+	totalItemsCount := 0
+
+	for _, order := range allOrders {
+		orderItems := itemsByOrderID[order.ID]
+
+		// Build order items
+		itemsForBill := make([]models.OrderItemForBill, 0)
+		for _, item := range orderItems {
+			itemsForBill = append(itemsForBill, models.OrderItemForBill{
+				ID:        item.ID,
+				OrderID:   item.OrderID,
+				ItemName:  item.ItemName,
+				Quantity:  item.Quantity,
+				UnitPrice: item.UnitPrice,
+				Status:    item.Status,
 			})
+			totalItemsCount++
 		}
+
+		ordersForBill = append(ordersForBill, models.OrderForBill{
+			ID:          order.ID,
+			OrderNumber: order.OrderNumber,
+			Status:      order.Status,
+			TotalAmount: order.Total,
+			Items:       itemsForBill,
+		})
 	}
 
 	// Build breakdown
@@ -250,16 +318,18 @@ func (s *Service) buildBillResponse(ctx context.Context, bill *models.Bill) (*mo
 		GrandTotal:             bill.TotalAmount,
 	}
 
-	return &models.BillResponse{
+	return &models.BillDetailResponse{
 		ID:             bill.ID,
 		BillNumber:     bill.BillNumber,
-		OrderID:        bill.OrderID,
-		OrderNumber:    &order.OrderNumber,
 		TableID:        bill.TableID,
-		TableName:      tableName,
+		TableNumber:    &table.TableNumber,
+		RestaurantID:   bill.RestaurantID,
 		CustomerID:     bill.CustomerID,
-		CustomerName:   customerName,
-		CustomerPhone:  customerPhone,
+		CustomerName:   nil, // Can be fetched if needed
+		CustomerPhone:  nil,
+		Orders:         ordersForBill,
+		OrdersCount:    len(allOrders),
+		ItemsCount:     totalItemsCount,
 		Subtotal:       bill.Subtotal,
 		TaxAmount:      bill.TaxAmount,
 		TaxRate:        &bill.TaxRate,
@@ -274,7 +344,144 @@ func (s *Service) buildBillResponse(ctx context.Context, bill *models.Bill) (*mo
 		CreatedAt:      bill.CreatedAt,
 		UpdatedAt:      &bill.UpdatedAt,
 		PaidAt:         bill.PaidAt,
-		Items:          billItems,
 		Breakdown:      breakdown,
 	}, nil
+}
+
+// Helper function to generate bill PDF
+func (s *Service) generateBillPDF(ctx context.Context, bill *models.Bill, allOrders []*models.Order, itemsByOrderID map[int][]*models.OrderItem, table *models.Table) ([]byte, error) {
+	pdf := gofpdf.New("P", "mm", "A4", "")
+	pdf.AddPage()
+
+	// Header
+	pdf.SetFont("Arial", "B", 16)
+	pdf.Cell(0, 10, "BILL")
+	pdf.Ln(10)
+
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(0, 5, fmt.Sprintf("Bill #: %s", bill.BillNumber))
+	pdf.Ln(5)
+	pdf.Cell(0, 5, fmt.Sprintf("Date: %s", bill.CreatedAt.Format("2006-01-02 15:04:05")))
+	pdf.Ln(5)
+
+	pdf.Ln(5)
+
+	// Table Info
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(50, 5, fmt.Sprintf("Table: %d", *bill.TableID))
+	pdf.Cell(0, 5, fmt.Sprintf("Restaurant: %d", *bill.RestaurantID))
+	pdf.Ln(5)
+
+	pdf.Ln(5)
+
+	// Items Table Header
+	pdf.SetFont("Arial", "B", 10)
+	pdf.Cell(80, 5, "Item")
+	pdf.Cell(20, 5, "Qty")
+	pdf.Cell(30, 5, "Price")
+	pdf.Cell(30, 5, "Subtotal")
+	pdf.Ln(5)
+
+	// Items Table Body
+	pdf.SetFont("Arial", "", 9)
+	for _, order := range allOrders {
+		orderItems := itemsByOrderID[order.ID]
+		for _, item := range orderItems {
+			pdf.Cell(80, 5, fmt.Sprintf("%s (%s)", item.ItemName, order.OrderNumber))
+			pdf.Cell(20, 5, fmt.Sprintf("%d", item.Quantity))
+			pdf.Cell(30, 5, fmt.Sprintf("%.2f", item.UnitPrice))
+			pdf.Cell(30, 5, fmt.Sprintf("%.2f", item.Subtotal))
+			pdf.Ln(5)
+		}
+	}
+
+	pdf.Ln(5)
+
+	// Summary Section
+	pdf.SetFont("Arial", "", 10)
+	pdf.Cell(130, 5, "Subtotal:")
+	pdf.Cell(30, 5, fmt.Sprintf("%.2f", bill.Subtotal))
+	pdf.Ln(5)
+
+	if bill.DiscountAmount > 0 {
+		pdf.Cell(130, 5, fmt.Sprintf("Discount (%s):", *bill.DiscountCode))
+		pdf.Cell(30, 5, fmt.Sprintf("-%.2f", bill.DiscountAmount))
+		pdf.Ln(5)
+	}
+
+	pdf.Cell(130, 5, fmt.Sprintf("Tax (%.1f%%):", bill.TaxRate))
+	pdf.Cell(30, 5, fmt.Sprintf("%.2f", bill.TaxAmount))
+	pdf.Ln(5)
+
+	if bill.ServiceCharge > 0 {
+		pdf.Cell(130, 5, "Service Charge:")
+		pdf.Cell(30, 5, fmt.Sprintf("%.2f", bill.ServiceCharge))
+		pdf.Ln(5)
+	}
+
+	// Grand Total
+	pdf.SetFont("Arial", "B", 12)
+	pdf.Cell(130, 5, "TOTAL:")
+	pdf.Cell(30, 5, fmt.Sprintf("%.2f", bill.TotalAmount))
+	pdf.Ln(5)
+
+	// Status
+	pdf.SetFont("Arial", "", 9)
+	pdf.Ln(5)
+	pdf.Cell(0, 5, fmt.Sprintf("Status: %s", bill.Status))
+	pdf.Ln(5)
+	if bill.PaidAt != nil {
+		pdf.Cell(0, 5, fmt.Sprintf("Paid At: %s", bill.PaidAt.Format("2006-01-02 15:04:05")))
+		pdf.Ln(5)
+	}
+
+	// Convert to bytes
+	var buf bytes.Buffer
+	err := pdf.Output(&buf)
+	if err != nil {
+		return nil, err
+	}
+
+	return buf.Bytes(), nil
+}
+
+// Helper function to upload PDF to Digital Ocean
+func (s *Service) uploadBillPDF(billNumber string, pdfBytes []byte) (string, error) {
+	// Initialize DO storage
+	err, doStorage := digital_ocean_storage.NewDOStorage("bills")
+	if err != nil {
+		return "", err
+	}
+
+	if err := doStorage.Run(); err != nil {
+		return "", err
+	}
+
+	// Get S3 client
+	s3Client, ok := doStorage.Get().(*s3.S3)
+	if !ok {
+		return "", fmt.Errorf("failed to get S3 client")
+	}
+
+	// Upload file
+	bucketName := config.Config.DigitalOcean.StorageBucket
+	fileName := fmt.Sprintf("bills/%s.pdf", billNumber)
+
+	_, err = s3Client.PutObject(&s3.PutObjectInput{
+		Bucket:      aws.String(bucketName),
+		Key:         aws.String(fileName),
+		Body:        bytes.NewReader(pdfBytes),
+		ACL:         aws.String("public-read"),
+		ContentType: aws.String("application/pdf"),
+	})
+
+	if err != nil {
+		return "", fmt.Errorf("failed to upload PDF: %w", err)
+	}
+
+	// Build URL
+	storageEndpoint := config.Config.DigitalOcean.StorageEndPoint
+	fileURL := fmt.Sprintf("https://%s.%s/%s", bucketName, storageEndpoint, fileName)
+
+	return fileURL, nil
 }

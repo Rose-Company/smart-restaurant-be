@@ -50,3 +50,26 @@ func (h *Handler) GetPaymentStatus() gin.HandlerFunc {
 		c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Payment status retrieved successfully", status))
 	}
 }
+
+// HandleVNPayCallback handles GET /api/vnpay/callback
+// Callback from VN-PAY after payment
+func (h *Handler) HandleVNPayCallback() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Extract VN-PAY response parameters
+		params := make(map[string]string)
+		for key, values := range c.Request.URL.Query() {
+			if len(values) > 0 {
+				params[key] = values[0]
+			}
+		}
+
+		// Process VN-PAY callback
+		result, err := h.service.HandleVNPayCallback(c.Request.Context(), params)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "VN-PAY callback processed", result))
+	}
+}

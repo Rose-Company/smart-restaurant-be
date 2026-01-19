@@ -235,3 +235,10 @@ type UploadAvatarResponse struct {
 	MimeType     string    `json:"mime_type"`
 	UploadedAt   time.Time `json:"uploaded_at"`
 }
+
+type GetMeResponse struct {
+	ID       string `json:"id"`
+	Email    string `json:"email"`
+	RoleID   string `json:"role_id"`
+	RoleName string `json:"role_name"`
+}

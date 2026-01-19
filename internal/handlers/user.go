@@ -71,6 +71,22 @@ func (h *Handler) LogIn(c *gin.Context) {
 	c.JSON(common.SUCCESS_STATUS, common.BaseResponseMess(common.SUCCESS_STATUS, "Login successfully", token))
 }
 
+func (h *Handler) GetMe(c *gin.Context) {
+	ok, userProfile := common.ProfileFromJwt(c)
+	if !ok {
+		common.AbortWithError(c, common.ErrCodeNotAuthorized)
+		return
+	}
+
+	user, err := h.service.GetMe(c.Request.Context(), userProfile.Id)
+	if err != nil {
+		common.AbortWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Get user info successfully", user))
+}
+
 func (h *Handler) RequestResetPassword(c *gin.Context) {
 	var req models.RequestResetPasswordRequest
 
