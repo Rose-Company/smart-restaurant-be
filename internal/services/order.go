@@ -635,6 +635,57 @@ func (s *Service) UpdateOrderStatus(ctx context.Context, orderID int, req models
 	}, nil
 }
 
+// checkAndUpdateOrderCompletion - Helper to check if all items are completed and update order status
+// If items param is nil, it will fetch from DB; otherwise use provided items to avoid N+1 queries
+func (s *Service) checkAndUpdateOrderCompletion(ctx context.Context, orderID int, items []*models.OrderItem) error {
+	// Use provided items if available, otherwise fetch from DB
+	var allItems []*models.OrderItem
+	if items != nil {
+		allItems = items
+	} else {
+		var err error
+		allItems, err = s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+			tx.Where("order_id = ?", orderID)
+		})
+		if err != nil || len(allItems) == 0 {
+			return err
+		}
+	}
+
+	// Check if all items are completed
+	allCompleted := true
+	for _, item := range allItems {
+		if item.Status != "completed" {
+			allCompleted = false
+			break
+		}
+	}
+
+	// If all items completed, update order status to completed
+	if allCompleted {
+		now := time.Now()
+		_, err := s.orderRepo.UpdateColumns(ctx, orderID, map[string]interface{}{
+			"status":       "completed",
+			"completed_at": now,
+			"updated_at":   now,
+		})
+		if err != nil {
+			return err
+		}
+
+		// Create timeline entry for order completion
+		timeline := &models.OrderTimeline{
+			OrderID:   orderID,
+			Status:    "completed",
+			UpdatedBy: "system",
+			Note:      common.StrPtr("Order completed - all items finished"),
+		}
+		s.orderTimelineRepo.Create(ctx, timeline)
+	}
+
+	return nil
+}
+
 // UpdateOrderItemStatus - TASK-005: Update menu item status across multiple orders
 func (s *Service) UpdateOrderItemStatus(ctx context.Context, menuItemID int, req models.UpdateOrderItemStatusRequest, userID, userName interface{}) (*models.OrderItemStatusUpdateBatchResponse, error) {
 	// Validate order_ids are provided
@@ -652,39 +703,55 @@ func (s *Service) UpdateOrderItemStatus(ctx context.Context, menuItemID int, req
 		UpdatedItems: []models.OrderItemStatusUpdateResponse{},
 	}
 
-	// Update item status for each order where this menu item appears
-	for _, orderID := range req.OrderIDs {
-		// Find order items with this menu_item_id in this order
-		items, err := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
-			tx.Where("menu_item_id = ? AND order_id = ?", menuItemID, orderID)
+	// OPTIMIZATION: Fetch items for all orders at once
+	// Use IN clause instead of individual queries
+	allItems, err := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("menu_item_id = ? AND order_id IN ?", menuItemID, req.OrderIDs)
+	})
+	if err != nil || len(allItems) == 0 {
+		return response, nil // No items found, return empty response
+	}
+
+	// Group items by order_id for easy lookup
+	itemsByOrderID := make(map[int][]*models.OrderItem)
+	for _, item := range allItems {
+		itemsByOrderID[item.OrderID] = append(itemsByOrderID[item.OrderID], item)
+	}
+
+	// Update all matching items
+	for _, item := range allItems {
+		previousStatus := item.Status
+
+		// Update item status
+		_, err = s.orderItemRepo.UpdateColumns(ctx, item.ID, map[string]interface{}{
+			"status":     req.Status,
+			"updated_at": time.Now(),
 		})
-		if err != nil || len(items) == 0 {
-			continue // Skip if item not found in this order
+		if err != nil {
+			continue
 		}
 
-		// Update all matching items for this order
-		for _, item := range items {
-			previousStatus := item.Status
+		if req.Status == "completed" {
+			// Update item in-memory for later check
+			item.Status = req.Status
+		}
 
-			// Update item status by order_item_id
-			_, err = s.orderItemRepo.UpdateColumns(ctx, item.ID, map[string]interface{}{
-				"status":     req.Status,
-				"updated_at": time.Now(),
-			})
-			if err != nil {
-				continue
-			}
+		response.UpdatedItems = append(response.UpdatedItems, models.OrderItemStatusUpdateResponse{
+			ItemID:         item.ID,
+			OrderID:        item.OrderID,
+			MenuItemName:   item.ItemName,
+			Status:         req.Status,
+			PreviousStatus: previousStatus,
+			UpdatedAt:      time.Now(),
+			UpdatedBy:      "kitchen",
+			UpdatedByName:  updatedByName,
+		})
+	}
 
-			response.UpdatedItems = append(response.UpdatedItems, models.OrderItemStatusUpdateResponse{
-				ItemID:         item.ID,
-				OrderID:        orderID,
-				MenuItemName:   item.ItemName,
-				Status:         req.Status,
-				PreviousStatus: previousStatus,
-				UpdatedAt:      time.Now(),
-				UpdatedBy:      "kitchen",
-				UpdatedByName:  updatedByName,
-			})
+	// Check and update order completion for each affected order
+	if req.Status == "completed" {
+		for orderID, items := range itemsByOrderID {
+			s.checkAndUpdateOrderCompletion(ctx, orderID, items)
 		}
 	}
 
@@ -708,14 +775,30 @@ func (s *Service) UpdateOrderMultipleItemsStatus(ctx context.Context, orderID in
 		UpdatedItems: []models.OrderItemStatusUpdateResponse{},
 	}
 
-	// Update each item
+	// OPTIMIZATION: Fetch ALL items for this order at once (avoid N+1 queries)
+	allOrderItems, err := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("order_id = ?", orderID)
+	})
+	if err != nil || len(allOrderItems) == 0 {
+		return nil, fmt.Errorf("no items found for this order")
+	}
+
+	// Build map: menu_item_id -> []*OrderItem for fast lookup
+	itemsByMenuID := make(map[int][]*models.OrderItem)
+	for _, item := range allOrderItems {
+		if item.MenuItemID != nil {
+			itemsByMenuID[*item.MenuItemID] = append(itemsByMenuID[*item.MenuItemID], item)
+		}
+	}
+
+	// Track if any item is being updated to completed status
+	hasCompletedItems := false
+
+	// Update each item from request
 	for _, reqItem := range req.Items {
-		// Find order item with this menu_item_id in this order
-		items, err := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
-			tx.Where("menu_item_id = ? AND order_id = ?", reqItem.MenuItemID, orderID)
-		})
-		if err != nil || len(items) == 0 {
-			continue // Skip if item not found in this order
+		items := itemsByMenuID[reqItem.MenuItemID]
+		if len(items) == 0 {
+			continue // Skip if item not found
 		}
 
 		for _, item := range items {
@@ -730,6 +813,12 @@ func (s *Service) UpdateOrderMultipleItemsStatus(ctx context.Context, orderID in
 				continue
 			}
 
+			if reqItem.Status == "completed" {
+				hasCompletedItems = true
+				// Update item in-memory for later check
+				item.Status = reqItem.Status
+			}
+
 			response.UpdatedItems = append(response.UpdatedItems, models.OrderItemStatusUpdateResponse{
 				ItemID:         item.ID,
 				OrderID:        orderID,
@@ -741,6 +830,12 @@ func (s *Service) UpdateOrderMultipleItemsStatus(ctx context.Context, orderID in
 				UpdatedByName:  nil,
 			})
 		}
+	}
+
+	// Check if all items are completed and auto-update order status
+	// Pass allOrderItems to avoid additional query
+	if hasCompletedItems {
+		s.checkAndUpdateOrderCompletion(ctx, orderID, allOrderItems)
 	}
 
 	response.TotalUpdated = len(response.UpdatedItems)
