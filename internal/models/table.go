@@ -73,8 +73,8 @@ type GenerateQrCodeRequest struct {
 type QrCodeData struct {
 	TableID   int        `json:"table_id"`
 	Token     string     `json:"token"`
-	CreatedAt *time.Time `json:"created_at"`
-	ExpiresAt *time.Time `json:"expires_at"`
+	CreatedAt *time.Time `json:"create_at"`
+	ExpiresAt *time.Time `json:"expire_at"`
 }
 
 type GenerateQrCodeResponse struct {
