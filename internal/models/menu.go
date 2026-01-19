@@ -168,7 +168,7 @@ type MenuItemDetailResponse struct {
 	Images          []MenuItemPhotoRequest `json:"images,omitempty"`
 	Modifiers       []MenuItemModifier     `json:"modifiers,omitempty"`
 	Reviews         []ReviewItem           `json:"reviews"`
-	RelatedItems    []MenuItemResponse     `json:"related_items"`
+	RelatedItems    []*MenuItemResponse    `json:"related_items"`
 }
 
 type MenuItemPhotoRequest struct {

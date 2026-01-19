@@ -663,19 +663,19 @@ func (s *Service) GetMenuItemByID(ctx context.Context, id int) (*models.MenuItem
 		return nil, err
 	}
 
-	// req := &models.ListMenuItemRequest{
-	// 	CategoryID: &menuItem.CategoryID,
-	// }
+	req := &models.ListMenuItemRequest{
+		CategoryID: &menuItem.CategoryID,
+	}
 
-	// listResp, err := s.GetMenuItems(ctx, req)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	listResp, err := s.GetMenuItems(ctx, req)
+	if err != nil {
+		return nil, err
+	}
 
-	// relatedItems, ok := listResp.Items.([]models.MenuItemResponse)
-	// if !ok {
-	// 	return nil, fmt.Errorf("unexpected related_items type")
-	// }
+	relatedItems, ok := listResp.Items.([]*models.MenuItemResponse)
+	if !ok {
+		return nil, fmt.Errorf("unexpected related_items type")
+	}
 
 	response := &models.MenuItemDetailResponse{
 		ID:              menuItem.ID,
@@ -691,7 +691,7 @@ func (s *Service) GetMenuItemByID(ctx context.Context, id int) (*models.MenuItem
 		Images:          imageRequests,
 		Modifiers:       modifiers,
 		Reviews:         reviews,
-		//RelatedItems:    relatedItems,
+		RelatedItems:    relatedItems,
 	}
 
 	return response, nil
