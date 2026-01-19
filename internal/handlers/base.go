@@ -103,7 +103,7 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		}
 	}
 
-	// Order Management APIs (TASK-001 to TASK-009)
+	// Order Management APIs (TASK-001 to TASK-010)
 	// Using optional authentication - guests can order via QR code, logged-in users get personalized experience
 	orders := c.Group("/api/orders")
 	{
@@ -117,6 +117,7 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		orders.POST("/:id/cancel", middleware.OptionalUserAuthentication(), h.CancelOrder)                           // TASK-007: Cancel order
 		orders.POST("/:id/alert", middleware.OptionalUserAuthentication(), h.SendKitchenAlert)                       // TASK-008: Send kitchen alert
 		orders.POST("/:id/review", middleware.OptionalUserAuthentication(), h.CreateOrderReview)                     // TASK-009: Submit review
+		orders.GET("/summary/category", middleware.OptionalUserAuthentication(), h.GetOrderItemsSummaryByCategory)   // TASK-010: Get items summary by category
 	}
 
 	// Bill Management APIs (TASK-010 to TASK-012)

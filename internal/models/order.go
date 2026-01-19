@@ -10,41 +10,42 @@ import (
 // ============================================
 
 type Order struct {
-	ID                  int        `json:"id" gorm:"primaryKey;autoIncrement"`
-	RestaurantID        *int       `json:"restaurant_id" gorm:"column:restaurant_id"`
-	TableID             int        `json:"table_id" gorm:"column:table_id;not null"`
-	Table               *Table     `json:"table,omitempty" gorm:"foreignKey:TableID"`
-	OrderNumber         string     `json:"order_number" gorm:"column:order_number;uniqueIndex;not null"`
-	CustomerUserID      *string    `json:"customer_user_id" gorm:"column:customer_user_id;type:uuid"`
-	CustomerUser        *User      `json:"customer,omitempty" gorm:"foreignKey:CustomerUserID"`
-	CustomerName        *string    `json:"customer_name" gorm:"column:customer_name"`
-	CustomerPhone       *string    `json:"customer_phone" gorm:"column:customer_phone"`
-	CustomerEmail       *string    `json:"customer_email" gorm:"column:customer_email"`
-	WaiterID            *string    `json:"waiter_id" gorm:"column:waiter_id;type:uuid"`
-	Waiter              *User      `json:"waiter,omitempty" gorm:"foreignKey:WaiterID"`
-	KitchenStaffID      *string    `json:"kitchen_staff_id" gorm:"column:kitchen_staff_id;type:uuid"`
-	KitchenStaff        *User      `json:"kitchen_staff,omitempty" gorm:"foreignKey:KitchenStaffID"`
-	Status              string     `json:"status" gorm:"column:status;default:'pending'"`
-	Subtotal            float64    `json:"subtotal" gorm:"column:subtotal;type:decimal(10,2);default:0"`
-	Tax                 float64    `json:"tax" gorm:"column:tax;type:decimal(10,2);default:0"`
-	Discount            float64    `json:"discount" gorm:"column:discount;type:decimal(10,2);default:0"`
-	Total               float64    `json:"total" gorm:"column:total;type:decimal(10,2);default:0;not null"`
-	Notes               *string    `json:"notes" gorm:"column:notes;type:text"`
-	SpecialInstructions *string    `json:"special_instructions" gorm:"column:special_instructions;type:text"`
-	Priority            string     `json:"priority" gorm:"column:priority;default:'normal'"`
-	Source              string     `json:"source" gorm:"column:source;default:'qr'"`
-	EstimatedReadyTime  *time.Time `json:"estimated_ready_time" gorm:"column:estimated_ready_time"`
-	Meta                *string    `json:"meta" gorm:"column:meta;type:jsonb"`
-	CreatedAt           time.Time  `json:"created_at" gorm:"column:created_at;autoCreateTime"`
-	UpdatedAt           time.Time  `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
-	AcceptedAt          *time.Time `json:"accepted_at" gorm:"column:accepted_at"`
-	PreparingAt         *time.Time `json:"preparing_at" gorm:"column:preparing_at"`
-	ReadyAt             *time.Time `json:"ready_at" gorm:"column:ready_at"`
-	ServedAt            *time.Time `json:"served_at" gorm:"column:served_at"`
-	CompletedAt         *time.Time `json:"completed_at" gorm:"column:completed_at"`
-	CancelledAt         *time.Time `json:"cancelled_at" gorm:"column:cancelled_at"`
-	CancelledBy         *string    `json:"cancelled_by" gorm:"column:cancelled_by"`
-	CancelReason        *string    `json:"cancel_reason" gorm:"column:cancel_reason;type:text"`
+	ID                  int         `json:"id" gorm:"primaryKey;autoIncrement"`
+	RestaurantID        *int        `json:"restaurant_id" gorm:"column:restaurant_id"`
+	TableID             int         `json:"table_id" gorm:"column:table_id;not null"`
+	Table               *Table      `json:"table,omitempty" gorm:"foreignKey:TableID"`
+	OrderNumber         string      `json:"order_number" gorm:"column:order_number;uniqueIndex;not null"`
+	CustomerUserID      *string     `json:"customer_user_id" gorm:"column:customer_user_id;type:uuid"`
+	CustomerUser        *User       `json:"customer,omitempty" gorm:"foreignKey:CustomerUserID"`
+	CustomerName        *string     `json:"customer_name" gorm:"column:customer_name"`
+	CustomerPhone       *string     `json:"customer_phone" gorm:"column:customer_phone"`
+	CustomerEmail       *string     `json:"customer_email" gorm:"column:customer_email"`
+	WaiterID            *string     `json:"waiter_id" gorm:"column:waiter_id;type:uuid"`
+	Waiter              *User       `json:"waiter,omitempty" gorm:"foreignKey:WaiterID"`
+	KitchenStaffID      *string     `json:"kitchen_staff_id" gorm:"column:kitchen_staff_id;type:uuid"`
+	KitchenStaff        *User       `json:"kitchen_staff,omitempty" gorm:"foreignKey:KitchenStaffID"`
+	Status              string      `json:"status" gorm:"column:status;default:'pending'"`
+	Subtotal            float64     `json:"subtotal" gorm:"column:subtotal;type:decimal(10,2);default:0"`
+	Tax                 float64     `json:"tax" gorm:"column:tax;type:decimal(10,2);default:0"`
+	Discount            float64     `json:"discount" gorm:"column:discount;type:decimal(10,2);default:0"`
+	Total               float64     `json:"total" gorm:"column:total;type:decimal(10,2);default:0;not null"`
+	Notes               *string     `json:"notes" gorm:"column:notes;type:text"`
+	SpecialInstructions *string     `json:"special_instructions" gorm:"column:special_instructions;type:text"`
+	Priority            string      `json:"priority" gorm:"column:priority;default:'normal'"`
+	Source              string      `json:"source" gorm:"column:source;default:'qr'"`
+	EstimatedReadyTime  *time.Time  `json:"estimated_ready_time" gorm:"column:estimated_ready_time"`
+	Meta                *string     `json:"meta" gorm:"column:meta;type:jsonb"`
+	CreatedAt           time.Time   `json:"created_at" gorm:"column:created_at;autoCreateTime"`
+	UpdatedAt           time.Time   `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
+	AcceptedAt          *time.Time  `json:"accepted_at" gorm:"column:accepted_at"`
+	PreparingAt         *time.Time  `json:"preparing_at" gorm:"column:preparing_at"`
+	ReadyAt             *time.Time  `json:"ready_at" gorm:"column:ready_at"`
+	ServedAt            *time.Time  `json:"served_at" gorm:"column:served_at"`
+	CompletedAt         *time.Time  `json:"completed_at" gorm:"column:completed_at"`
+	CancelledAt         *time.Time  `json:"cancelled_at" gorm:"column:cancelled_at"`
+	CancelledBy         *string     `json:"cancelled_by" gorm:"column:cancelled_by"`
+	CancelReason        *string     `json:"cancel_reason" gorm:"column:cancel_reason;type:text"`
+	Items               []OrderItem `json:"items,omitempty" gorm:"foreignKey:OrderID"`
 }
 
 func (Order) TableName() string {
@@ -338,4 +339,26 @@ type PaginatedOrdersResponse struct {
 	Page     int                     `json:"page"`
 	PageSize int                     `json:"page_size"`
 	Items    []OrderListItemResponse `json:"items"`
+}
+
+// TASK-010: Kitchen Items Summary grouped by category
+type OrderItemsSummaryResponse struct {
+	Category string                      `json:"category"`
+	Items    []OrderItemSummaryWithTable `json:"items"`
+}
+
+type OrderItemSummaryWithTable struct {
+	ItemID      int                  `json:"item_id"`
+	MenuItemID  int                  `json:"menu_item_id"`
+	ItemName    string               `json:"item_name"`
+	TotalQty    int                  `json:"total_qty"`
+	OrderTables []OrderItemTableInfo `json:"order_tables"`
+}
+
+type OrderItemTableInfo struct {
+	OrderID     int    `json:"order_id"`
+	TableID     int    `json:"table_id"`
+	TableNumber string `json:"table_number"`
+	Quantity    int    `json:"quantity"`
+	Status      string `json:"status"`
 }
