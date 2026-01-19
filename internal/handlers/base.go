@@ -97,7 +97,7 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 
 		menuItem := menu.Group("/items")
 		{
-			menuItem.GET("/:id", h.GetMenuItemByID())
+			menuItem.GET("/:id", h.GetMenuItemByIDDetailed())
 			menuItem.POST("/:id/modifier-groups", h.AssignMenuItemModifierGroup())
 			menuItem.DELETE("/:id/modifier-groups/:groupId", h.DeleteMenuItemModifierGroup())
 		}

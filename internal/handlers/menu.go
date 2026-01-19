@@ -212,6 +212,24 @@ func (h *Handler) GetMenuItemByID() gin.HandlerFunc {
 	}
 }
 
+func (h *Handler) GetMenuItemByIDDetailed() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var params models.MenuItemIDParamsUri
+		if err := c.ShouldBindUri(&params); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		data, err := h.service.GetMenuItemByIDDetailed(c, params.ID)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(data))
+	}
+}
+
 func (h *Handler) CreateMenuItem() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var request models.CreateMenuItemRequest
