@@ -12,6 +12,15 @@ type ListTablesRequest struct {
 	Zone   *string `form:"zone"`
 }
 
+// ListTablesForStaffRequest - Filter tables for staff view with order details
+type ListTablesForStaffRequest struct {
+	BaseRequestParamsUri
+	Search        *string `form:"search"`
+	Status        *string `form:"status"`
+	IsReadyToBill *bool   `form:"is_ready_to_bill"`
+	IsHelpNeeded  *bool   `form:"is_help_needed"`
+}
+
 type TableParamsUri struct {
 	ID int `uri:"id" binding:"required,min=1"`
 }
@@ -85,6 +94,67 @@ type QrCodeInfo struct {
 	Token     string
 	CreatedAt *time.Time
 	ExpiresAt *time.Time
+}
+
+// TableOrderSummary - Summary of order for staff view
+type TableOrderSummary struct {
+	ID            int                `json:"id"`
+	OrderNumber   string             `json:"order_number"`
+	Status        string             `json:"status"`
+	TotalAmount   float64            `json:"total_amount"`
+	IsReadyToBill bool               `json:"is_ready_to_bill"`
+	IsHelpNeeded  bool               `json:"is_help_needed"`
+	ItemsCount    int                `json:"items_count"`
+	Items         []OrderItemSummary `json:"items"`
+	CreatedAt     time.Time          `json:"created_at"`
+	CustomerName  string             `json:"customer_name,omitempty"`
+}
+
+// OrderItemSummary - Summary of order item
+type OrderItemSummary struct {
+	ID        int     `json:"id"`
+	ItemName  string  `json:"item_name"`
+	Quantity  int     `json:"quantity"`
+	UnitPrice float64 `json:"unit_price"`
+	Status    string  `json:"status"`
+}
+
+// OrderItemDetailForStaff - Order item with order ID for staff view
+type OrderItemDetailForStaff struct {
+	ID        int     `json:"id"`
+	OrderID   int     `json:"order_id"`
+	ItemName  string  `json:"item_name"`
+	Quantity  int     `json:"quantity"`
+	UnitPrice float64 `json:"unit_price"`
+	Status    string  `json:"status"`
+}
+
+// TableForStaffResponse - Table with orders for staff view
+type TableForStaffResponse struct {
+	ID                int                 `json:"id"`
+	TableNumber       string              `json:"table_number"`
+	Capacity          int                 `json:"capacity"`
+	Location          string              `json:"location"`
+	Status            string              `json:"status"`
+	Orders            []TableOrderSummary `json:"orders"`
+	ActiveOrdersCount int                 `json:"active_orders_count"`
+	TotalBill         float64             `json:"total_bill"`
+	CreatedAt         *time.Time          `json:"created_at,omitempty"`
+	UpdatedAt         *time.Time          `json:"updated_at,omitempty"`
+}
+
+// TableDetailForStaffResponse - Table detail with all order items for staff
+type TableDetailForStaffResponse struct {
+	ID             int                       `json:"id"`
+	TableNumber    string                    `json:"table_number"`
+	Capacity       int                       `json:"capacity"`
+	Location       string                    `json:"location"`
+	Status         string                    `json:"status"`
+	GuestCount     int                       `json:"guest_count"`
+	TotalBill      float64                   `json:"total_bill"`
+	OrderItems     []OrderItemDetailForStaff `json:"order_items"`
+	AllOrdersCount int                       `json:"all_orders_count"`
+	CreatedAt      *time.Time                `json:"created_at,omitempty"`
 }
 
 func (Table) TableName() string {

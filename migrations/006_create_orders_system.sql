@@ -139,7 +139,7 @@ CREATE TABLE IF NOT EXISTS public.bills (
     -- Bill metadata
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'cancelled', 'refunded')),
     bill_type VARCHAR(20) DEFAULT 'request' CHECK (bill_type IN ('request', 'generated', 'manual')),
-    payment_method VARCHAR(20) CHECK (payment_method IN ('cash', 'card', 'ewallet', 'stripe', 'other')),
+    payment_method VARCHAR(20) CHECK (payment_method IN ('cash', 'card', 'ewallet', 'vnpay', 'stripe', 'other')),
     
     -- Tracking
     requested_by VARCHAR(50), -- 'customer', 'waiter', 'system'
@@ -178,7 +178,7 @@ CREATE TABLE IF NOT EXISTS public.payments (
     
     -- Payment details
     amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
-    method VARCHAR(20) NOT NULL CHECK (method IN ('cash', 'card', 'ewallet', 'stripe', 'other')),
+    method VARCHAR(20) NOT NULL CHECK (method IN ('cash', 'card', 'ewallet', 'vnpay', 'stripe', 'other')),
     status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'succeeded', 'failed', 'cancelled', 'refunded')),
     
     -- Cash payment details

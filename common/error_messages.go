@@ -94,8 +94,8 @@ var (
 	ErrMinOrderNotMet        = errors.New("min_order_not_met")
 	ErrDiscountLimitExceeded = errors.New("discount_limit_exceeded")
 	ErrPaymentFailed         = errors.New("payment_failed")
-
-	ErrCodeInvalidTimeRange = errors.New("invalid_time_range")
+	ErrCodeInvalidTimeRange  = errors.New("invalid_time_range")
+	ErrUserNotFound          = errors.New("user_not_found")
 )
 var listErrorData = []errData{
 	{

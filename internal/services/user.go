@@ -2,6 +2,7 @@ package services
 
 import (
 	"app-noti/common"
+	"app-noti/config"
 	"app-noti/internal/models"
 	"context"
 	"encoding/json"
@@ -15,7 +16,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var JWTSecret = []byte("your_secret_key")
+var JWTSecret = []byte(config.Config.JwtSecret)
 
 func (s *Service) SignupUser(ctx context.Context, req models.SignupRequest) error {
 	// Step 1: Verify email via OTP
@@ -160,6 +161,32 @@ func (s *Service) LoginUser(ctx context.Context, req models.LoginRequest) (*stri
 	}
 
 	return generateJWTToken(user)
+}
+
+func (s *Service) GetMe(ctx context.Context, userID string) (*models.GetMeResponse, error) {
+	if userID == "" {
+		return nil, common.ErrUnauthorized
+	}
+
+	user, err := s.userRepo.GetByID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.ErrUserNotFound
+		}
+		return nil, err
+	}
+
+	var roleName string
+	if user.Role != nil {
+		roleName = user.Role.Name
+	}
+
+	return &models.GetMeResponse{
+		ID:       user.ID,
+		Email:    user.Email,
+		RoleID:   user.RoleID,
+		RoleName: roleName,
+	}, nil
 }
 
 func generateJWTToken(user *models.User) (*string, error) {

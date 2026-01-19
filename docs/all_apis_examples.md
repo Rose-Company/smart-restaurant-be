@@ -104,6 +104,8 @@ curl -X GET "http://localhost:8080/api/orders?page=1&page_size=10&status=pending
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
+curl "http://localhost:8080/api/orders?status=pending&is_ready_to_bill=true&is_help_needed=false"
+
 ### Query Parameters
 - `page` (int): Page number (default: 1)
 - `page_size` (int): Items per page (default: 10)
@@ -111,6 +113,8 @@ curl -X GET "http://localhost:8080/api/orders?page=1&page_size=10&status=pending
 - `table_id` (int): Filter by table
 - `category` (string): Filter by menu category (e.g., "Main Courses", "Appetizers", "Desserts")
 - `sort` (string): Sort order (created_at_asc, created_at.desc, total_amount_asc, total_amount_desc)
+- `is_ready_to_bill` (bool)
+- `is_help_needed` (bool)
 
 ### Response (Success)
 ```json
@@ -731,42 +735,172 @@ curl -X PATCH "http://localhost:8080/api/bills/67" \
 **POST** `/api/payments`  
 **Authentication:** Optional
 
-### Request
+### Request - VN-PAY Method
 ```bash
 curl -X POST "http://localhost:8080/api/payments" \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_TOKEN" \
   -d '{
-    "bill_id": 67,
-    "payment_method": "credit_card",
-    "amount": 325500,
-    "card_number": "4111111111111111",
-    "card_holder": "John Doe",
-    "card_exp_month": 12,
-    "card_exp_year": 2026,
-    "card_cvv": "123"
+    "bill_id": 1,
+    "amount": 80.99,
+    "method": "vnpay",
+    "metadata": "{\"customer_id\": \"123\", \"table\": \"08\"}"
   }'
 ```
 
-### Response (Success)
+### Response (VN-PAY Success)
 ```json
 {
-  "code": 200,
-  "message": "Payment processed successfully",
+  "code": 201,
+  "message": "Payment initiated",
   "data": {
-    "payment_id": 234,
-    "bill_id": 67,
-    "transaction_id": "TXN-2025-001234",
-    "payment_method": "credit_card",
-    "amount": 325500,
-    "status": "success",
-    "processed_at": "2025-01-19T10:51:00Z",
-    "reference_code": "REF-2025-001234"
+    "payment_id": "PAY-20260120-1",
+    "bill_id": 1,
+    "bill_number": "BILL-2026-123456",
+    "amount": 80.99,
+    "method": "vnpay",
+    "status": "pending",
+    "vnpay_url": "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?vnp_Amount=8099&vnp_BankCode=NCB&vnp_Command=pay&...",
+    "created_at": "2026-01-20T12:30:00Z"
   }
 }
 ```
 
 ---
+
+### Request - CASH Method
+```bash
+curl -X POST "http://localhost:8080/api/payments" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bill_id": 1,
+    "amount": 80.99,
+    "method": "cash",
+    "received_amount": 100.00,
+    "change_amount": 19.01
+  }'
+```
+
+### Response (CASH Success - Bill Updated to PAID, Table to ACTIVE)
+```json
+{
+  "code": 201,
+  "message": "Payment completed",
+  "data": {
+    "payment_id": "PAY-20260120-1",
+    "bill_id": 1,
+    "bill_number": "BILL-2026-123456",
+    "amount": 80.99,
+    "method": "cash",
+    "status": "completed",
+    "received_amount": 100.00,
+    "change_amount": 19.01,
+    "created_at": "2026-01-20T12:30:00Z",
+    "processed_at": "2026-01-20T12:31:00Z"
+  }
+}
+```
+
+---
+
+### Request - CARD Method
+```bash
+curl -X POST "http://localhost:8080/api/payments" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bill_id": 1,
+    "amount": 80.99,
+    "method": "card",
+    "metadata": "{\"card_last_4\": \"1111\", \"card_brand\": \"Visa\"}"
+  }'
+```
+
+### Response (CARD Success - Bill Updated to PAID, Table to ACTIVE)
+```json
+{
+  "code": 201,
+  "message": "Payment succeeded",
+  "data": {
+    "payment_id": "PAY-20260120-1",
+    "bill_id": 1,
+    "bill_number": "BILL-2026-123456",
+    "amount": 80.99,
+    "method": "card",
+    "status": "succeeded",
+    "receipt_url": "https://receipts.stripe.com/ch_1234567890",
+    "created_at": "2026-01-20T12:30:00Z",
+    "processed_at": "2026-01-20T12:31:00Z"
+  }
+}
+```
+
+---
+
+### Request - E-WALLET Method
+```bash
+curl -X POST "http://localhost:8080/api/payments" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bill_id": 1,
+    "amount": 80.99,
+    "method": "ewallet",
+    "metadata": "{\"wallet_provider\": \"momo\", \"phone\": \"0912345678\"}"
+  }'
+```
+
+### Response (E-WALLET Success - Bill Updated to PAID, Table to ACTIVE)
+```json
+{
+  "code": 201,
+  "message": "Payment succeeded",
+  "data": {
+    "payment_id": "PAY-20260120-1",
+    "bill_id": 1,
+    "bill_number": "BILL-2026-123456",
+    "amount": 80.99,
+    "method": "ewallet",
+    "status": "succeeded",
+    "receipt_url": "https://receipts.momo.vn/txn_1234567890",
+    "created_at": "2026-01-20T12:30:00Z",
+    "processed_at": "2026-01-20T12:31:00Z"
+  }
+}
+```
+
+---
+
+### Error Response - Invalid Amount
+```json
+{
+  "code": 400,
+  "error_code": "invalid_amount",
+  "message": "Amount must be greater than 0 and not exceed bill total"
+}
+```
+
+### Error Response - Bill Not Found
+```json
+{
+  "code": 404,
+  "error_code": "bill_not_found",
+  "message": "Bill not found"
+}
+```
+
+---
+
+### Payment Flow Summary
+
+| Method | Flow | Bill Status | Table Status |
+|--------|------|------------|--------------|
+| **CASH** | Instant | `paid` ✅ | `active` ✅ |
+| **CARD** | Instant | `paid` ✅ | `active` ✅ |
+| **E-WALLET** | Instant | `paid` ✅ | `active` ✅ |
+| **VN-PAY** | Redirect → Callback | `paid` ✅* | `active` ✅* |
+
+*VN-PAY: Updated when callback is received from VN-PAY
+
+---
+
 
 ## TASK-014: Check Payment Status
 **GET** `/api/payments/:id/status`  

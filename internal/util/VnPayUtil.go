@@ -22,6 +22,9 @@ func HmacSHA512(key, data string) string {
 }
 
 func GetIPAddress(r *http.Request) string {
+	if r == nil {
+		return "127.0.0.1" // Default IP for server-side requests
+	}
 	ip := r.Header.Get("X-FORWARDED-FOR")
 	if ip == "" {
 		ip = r.RemoteAddr

@@ -32,6 +32,44 @@ func (h *Handler) GetTables() gin.HandlerFunc {
 	}
 }
 
+// GetTablesForStaff - Get tables with orders for staff view (waiter/kitchen)
+func (h *Handler) GetTablesForStaff() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var params = models.ListTablesForStaffRequest{}
+		if err := c.ShouldBindQuery(&params); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		data, err := h.service.GetTablesForStaff(c.Request.Context(), &params)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Tables retrieved successfully", data))
+	}
+}
+
+// GetTableDetailForStaff - Get table detail with all order items for staff
+func (h *Handler) GetTableDetailForStaff() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var params models.TableParamsUri
+		if err := c.ShouldBindUri(&params); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		data, err := h.service.GetTableDetailForStaff(c.Request.Context(), params.ID)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Table detail retrieved successfully", data))
+	}
+}
+
 func (h *Handler) GetTableByID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
