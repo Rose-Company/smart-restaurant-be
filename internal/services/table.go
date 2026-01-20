@@ -202,53 +202,14 @@ func (s *Service) GetTablesForStaff(ctx context.Context, request *models.ListTab
 		itemsByOrderID[item.OrderID] = append(itemsByOrderID[item.OrderID], item)
 	}
 
-	// Filter tables based on order flags
+	// Return all tables without any filtering
 	var filteredTableIDs []int
 	for _, table := range allTables {
 		orders := ordersByTableID[table.ID]
 		if len(orders) == 0 {
 			continue
 		}
-
-		// Check if table matches filter criteria
-		shouldInclude := false
-
-		if request.IsReadyToBill == nil && request.IsHelpNeeded == nil {
-			// No filter, include all occupied tables with active orders
-			shouldInclude = true
-		} else if request.IsReadyToBill != nil && *request.IsReadyToBill {
-			// Filter by is_ready_to_bill = true
-			for _, order := range orders {
-				if order.IsReadyToBill {
-					shouldInclude = true
-					break
-				}
-			}
-		} else if request.IsHelpNeeded != nil && *request.IsHelpNeeded {
-			// Filter by is_help_needed = true
-			for _, order := range orders {
-				if order.IsHelpNeeded {
-					shouldInclude = true
-					break
-				}
-			}
-		} else if (request.IsReadyToBill != nil && !*request.IsReadyToBill) || (request.IsHelpNeeded != nil && !*request.IsHelpNeeded) {
-			// Filter by both false (kitchen ready)
-			allFalse := true
-			for _, order := range orders {
-				if order.IsReadyToBill || order.IsHelpNeeded {
-					allFalse = false
-					break
-				}
-			}
-			if allFalse {
-				shouldInclude = true
-			}
-		}
-
-		if shouldInclude {
-			filteredTableIDs = append(filteredTableIDs, table.ID)
-		}
+		filteredTableIDs = append(filteredTableIDs, table.ID)
 	}
 
 	// Apply pagination
@@ -295,8 +256,6 @@ func (s *Service) GetTablesForStaff(ctx context.Context, request *models.ListTab
 		orderSummaries := make([]models.TableOrderSummary, 0)
 		totalBill := 0.0
 		var customerName string
-		isHelpNeeded := false
-		isReadyToBill := false
 
 		for _, order := range orders {
 			// Get order items from pre-loaded data
@@ -304,14 +263,6 @@ func (s *Service) GetTablesForStaff(ctx context.Context, request *models.ListTab
 
 			if order.CustomerName != nil {
 				customerName = *order.CustomerName
-			}
-
-			// Track help needed and ready to bill flags at table level
-			if order.IsHelpNeeded {
-				isHelpNeeded = true
-			}
-			if order.IsReadyToBill {
-				isReadyToBill = true
 			}
 
 			// Build item summaries
@@ -351,8 +302,8 @@ func (s *Service) GetTablesForStaff(ctx context.Context, request *models.ListTab
 			Orders:            orderSummaries,
 			ActiveOrdersCount: len(orders),
 			TotalBill:         totalBill,
-			IsHelpNeeded:      isHelpNeeded,
-			IsReadyToBill:     isReadyToBill,
+			IsHelpNeeded:      table.IsHelpNeeded,
+			IsReadyToBill:     table.IsReadyToBill,
 			CreatedAt:         table.CreatedAt,
 			UpdatedAt:         table.UpdatedAt,
 		}

@@ -33,6 +33,8 @@ type Table struct {
 	Capacity         int        `json:"capacity" gorm:"column:capacity"`
 	Location         string     `json:"location" gorm:"column:location"`
 	Status           string     `json:"status" gorm:"column:status"`
+	IsHelpNeeded     bool       `json:"is_help_needed" gorm:"column:is_help_needed"`
+	IsReadyToBill    bool       `json:"is_ready_to_bill" gorm:"column:is_ready_to_bill"`
 	QrToken          string     `json:"qr_token" gorm:"column:qr_token"`
 	QrTokenCreatedAt *time.Time `json:"qr_token_created_at" gorm:"column:qr_token_created_at"`
 	QrTokenExpiresAt *time.Time `json:"qr_token_expires_at" gorm:"column:qr_token_expires_at"`
