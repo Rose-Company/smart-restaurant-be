@@ -144,6 +144,32 @@ func (h *Handler) UpdateTable() gin.HandlerFunc {
 	}
 }
 
+// UpdateTableFlags - Staff can update table flags (is_ready_to_bill, is_help_needed)
+func (h *Handler) UpdateTableFlags() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		var request models.UpdateTableFlagsRequest
+		if err := c.ShouldBindJSON(&request); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		data, err := h.service.UpdateTableFlags(c, id, &request)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(data))
+	}
+}
+
 func (h *Handler) UpdateTableStatus() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")

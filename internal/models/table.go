@@ -76,6 +76,11 @@ type UpdateTableStatusRequest struct {
 	Status string `json:"status" binding:"required,oneof=active occupied inactive"`
 }
 
+type UpdateTableFlagsRequest struct {
+	IsReadyToBill *bool `json:"is_ready_to_bill,omitempty"`
+	IsHelpNeeded  *bool `json:"is_help_needed,omitempty"`
+}
+
 type GenerateQrCodeRequest struct {
 	TableNumber string `json:"table_number" binding:"required"`
 }
