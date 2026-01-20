@@ -295,6 +295,8 @@ func (s *Service) GetTablesForStaff(ctx context.Context, request *models.ListTab
 		orderSummaries := make([]models.TableOrderSummary, 0)
 		totalBill := 0.0
 		var customerName string
+		isHelpNeeded := false
+		isReadyToBill := false
 
 		for _, order := range orders {
 			// Get order items from pre-loaded data
@@ -302,6 +304,14 @@ func (s *Service) GetTablesForStaff(ctx context.Context, request *models.ListTab
 
 			if order.CustomerName != nil {
 				customerName = *order.CustomerName
+			}
+
+			// Track help needed and ready to bill flags at table level
+			if order.IsHelpNeeded {
+				isHelpNeeded = true
+			}
+			if order.IsReadyToBill {
+				isReadyToBill = true
 			}
 
 			// Build item summaries
@@ -341,6 +351,8 @@ func (s *Service) GetTablesForStaff(ctx context.Context, request *models.ListTab
 			Orders:            orderSummaries,
 			ActiveOrdersCount: len(orders),
 			TotalBill:         totalBill,
+			IsHelpNeeded:      isHelpNeeded,
+			IsReadyToBill:     isReadyToBill,
 			CreatedAt:         table.CreatedAt,
 			UpdatedAt:         table.UpdatedAt,
 		}

@@ -237,8 +237,10 @@ type UploadAvatarResponse struct {
 }
 
 type GetMeResponse struct {
-	ID       string `json:"id"`
-	Email    string `json:"email"`
-	RoleID   string `json:"role_id"`
-	RoleName string `json:"role_name"`
+	ID        string  `json:"id"`
+	Email     string  `json:"email"`
+	FirstName *string `json:"first_name,omitempty"`
+	LastName  *string `json:"last_name,omitempty"`
+	RoleID    string  `json:"role_id"`
+	RoleName  string  `json:"role_name"`
 }
