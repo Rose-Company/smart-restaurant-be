@@ -174,6 +174,15 @@ func (s *Service) createOrderWithTransaction(ctx context.Context, req models.Cre
 		return nil, err
 	}
 
+	// Update table status to occupied
+	_, err = s.tableRepo.UpdateColumns(ctx, req.TableID, map[string]interface{}{
+		"status":     "occupied",
+		"updated_at": time.Now(),
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	// 7. Create order items and modifiers
 	var responseItems []models.OrderItemResponse
 	for i, itemReq := range req.Items {
