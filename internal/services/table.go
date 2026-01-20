@@ -497,6 +497,34 @@ func (s *Service) UpdateTableStatus(ctx context.Context, id int, request *models
 	return updated, nil
 }
 
+func (s *Service) UpdateTableFlags(ctx context.Context, id int, request *models.UpdateTableFlagsRequest) (*models.Table, error) {
+	_, err := s.tableRepo.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	columns := map[string]interface{}{}
+
+	if request.IsReadyToBill != nil {
+		columns["is_ready_to_bill"] = *request.IsReadyToBill
+	}
+
+	if request.IsHelpNeeded != nil {
+		columns["is_help_needed"] = *request.IsHelpNeeded
+	}
+
+	if len(columns) == 0 {
+		return s.tableRepo.GetByID(ctx, id)
+	}
+
+	updated, err := s.tableRepo.UpdateColumns(ctx, id, columns)
+	if err != nil {
+		return nil, err
+	}
+
+	return updated, nil
+}
+
 func (s *Service) GenerateQrCodeByTableId(ctx context.Context, tableId int) (*models.QrCodeData, error) {
 	table, err := s.tableRepo.GetByID(ctx, tableId)
 	if err != nil {

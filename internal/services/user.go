@@ -186,12 +186,13 @@ func (s *Service) GetMe(ctx context.Context, userID string) (*models.GetMeRespon
 	}
 
 	return &models.GetMeResponse{
-		ID:        user.ID,
-		Email:     user.Email,
-		FirstName: user.FirstName,
-		LastName:  user.LastName,
-		RoleID:    user.RoleID,
-		RoleName:  roleName,
+		ID:          user.ID,
+		Email:       user.Email,
+		FirstName:   user.FirstName,
+		LastName:    user.LastName,
+		PhoneNumber: user.PhoneNumber,
+		RoleID:      user.RoleID,
+		RoleName:    roleName,
 	}, nil
 }
 
