@@ -140,6 +140,8 @@ type TableForStaffResponse struct {
 	Orders            []TableOrderSummary `json:"orders"`
 	ActiveOrdersCount int                 `json:"active_orders_count"`
 	TotalBill         float64             `json:"total_bill"`
+	IsHelpNeeded      bool                `json:"is_help_needed"`
+	IsReadyToBill     bool                `json:"is_ready_to_bill"`
 	CreatedAt         *time.Time          `json:"created_at,omitempty"`
 	UpdatedAt         *time.Time          `json:"updated_at,omitempty"`
 }
