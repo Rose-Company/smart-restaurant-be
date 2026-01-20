@@ -69,11 +69,11 @@ type Redis struct {
 
 type VNPay struct {
 	PayURL    string `mapstructure:"url"`
-	ReturnURL string `mapstructure:"returnUrl"`
-	TmnCode   string `mapstructure:"tmnCode"`
-	SecretKey string `mapstructure:"secretKey"`
+	ReturnURL string `mapstructure:"return_url"`
+	TmnCode   string `mapstructure:"tmn_code"`
+	SecretKey string `mapstructure:"secret_key"`
 	Command   string `mapstructure:"command"`
-	OrderType string `mapstructure:"orderType"`
+	OrderType string `mapstructure:"order_type"`
 	Version   string `mapstructure:"version"`
 }
 
