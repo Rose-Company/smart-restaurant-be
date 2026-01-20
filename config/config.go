@@ -117,7 +117,7 @@ func init() {
 		ll.Fatal("Failed to unmarshal config", l.Error(err))
 	}
 
-	// Debug print VNPay config
+	// Debug print VNPay config check
 	fmt.Printf("VNPay URL: %s\n", Config.Payment.VNPay.PayURL)
 	fmt.Printf("VNPay Return URL: %s\n", Config.Payment.VNPay.ReturnURL)
 	fmt.Printf("VNPay TMN Code: %s\n", Config.Payment.VNPay.TmnCode)
