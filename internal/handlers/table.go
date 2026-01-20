@@ -35,16 +35,22 @@ func (h *Handler) GetTables() gin.HandlerFunc {
 // GetTablesForStaff - Get tables with orders for staff view (waiter/kitchen)
 func (h *Handler) GetTablesForStaff() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		fmt.Println("flag 1")
 		var params = models.ListTablesForStaffRequest{}
 		if err := c.ShouldBindQuery(&params); err != nil {
 			common.AbortWithError(c, err)
 			return
 		}
 
-		// Get current user ID from context
-		userID, exists := c.Get("user_id")
-		if exists && userID != nil {
-			params.StaffID = userID.(string)
+		// Get staff ID from JWT if user is authenticated
+		ok, profile := common.ProfileFromJwt(c)
+		if ok {
+			fmt.Println("flag 2 - Staff profile found:", profile)
+			params.StaffID = profile.Id
+		} else {
+			fmt.Println("flag 2 FAILED - JWT not found in context")
+			common.AbortWithError(c, common.ErrUnauthorized)
+			return
 		}
 
 		data, err := h.service.GetTablesForStaff(c.Request.Context(), &params)

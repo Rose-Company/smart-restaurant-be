@@ -169,9 +169,9 @@ func (s *Service) GetTablesForStaff(ctx context.Context, request *models.ListTab
 		tableIDs = append(tableIDs, t.ID)
 	}
 
-	// Get ALL orders for all tables in ONE query
+	// Get ALL orders for occupied tables with active status
 	allOrders, err := s.orderRepo.ListByConditions(ctx, func(tx *gorm.DB) {
-		tx.Where("table_id IN ? AND status NOT IN ?", tableIDs, []string{"completed", "cancelled"})
+		tx.Where("table_id IN ? ", tableIDs)
 	})
 	if err != nil {
 		return nil, err
