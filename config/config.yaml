@@ -35,7 +35,7 @@ jwt_secret:
 token_expired_time: 604800000
 
 payment:
-  vn_pay:
+  vnpay:
     url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
     return_url: https://smart-restaurant-fe.vercel.app/payment/callback
     tmn_code: 
