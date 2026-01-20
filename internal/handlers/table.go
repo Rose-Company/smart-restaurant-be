@@ -41,6 +41,12 @@ func (h *Handler) GetTablesForStaff() gin.HandlerFunc {
 			return
 		}
 
+		// Get current user ID from context
+		userID, exists := c.Get("user_id")
+		if exists && userID != nil {
+			params.StaffID = userID.(string)
+		}
+
 		data, err := h.service.GetTablesForStaff(c.Request.Context(), &params)
 		if err != nil {
 			common.AbortWithError(c, err)

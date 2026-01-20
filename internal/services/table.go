@@ -118,13 +118,37 @@ func (s *Service) GetTables(ctx context.Context, request *models.ListTablesReque
 }
 
 // GetTablesForStaff - Get tables with orders for staff view (waiter/kitchen)
-// Filter by is_help_needed and is_ready_to_bill
+// Filter by is_help_needed and is_ready_to_bill, and only tables assigned to staff
 func (s *Service) GetTablesForStaff(ctx context.Context, request *models.ListTablesForStaffRequest) (*models.BaseListResponse, error) {
 	page, pageSize := utils.GetPageAndPageSize(request.Page, request.PageSize)
 
-	// Get all occupied tables
+	// First, get tables assigned to this staff member
+	var assignedTableIDs []int
+	if request.StaffID != "" {
+		assignments, err := s.waiterTableAssignmentRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+			tx.Where("waiter_id = ? AND is_active = true", request.StaffID).
+				Select("table_id")
+		})
+		if err == nil && len(assignments) > 0 {
+			for _, assignment := range assignments {
+				assignedTableIDs = append(assignedTableIDs, assignment.TableID)
+			}
+		}
+	}
+
+	// If staff has no assigned tables, return empty
+	if len(assignedTableIDs) == 0 {
+		return &models.BaseListResponse{
+			Total:    0,
+			Page:     page,
+			PageSize: pageSize,
+			Items:    []models.TableForStaffResponse{},
+		}, nil
+	}
+
+	// Get occupied tables that are assigned to this staff
 	allTables, err := s.tableRepo.ListByConditions(ctx, func(tx *gorm.DB) {
-		tx.Where("status = ?", "occupied")
+		tx.Where("status = ? AND id IN ?", "occupied", assignedTableIDs)
 	})
 	if err != nil {
 		return nil, err

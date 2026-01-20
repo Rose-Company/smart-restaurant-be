@@ -8,32 +8,32 @@ import (
 type User struct {
 	ID            string           `json:"id" gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	Email         string           `json:"email" gorm:"uniqueIndex"`
-	FirstName     *string          `json:"first_name" gorm:"column:first_name"`
-	LastName      *string          `json:"last_name" gorm:"column:last_name"`
+	FirstName     *string          `json:"first_name,omitempty" gorm:"column:first_name"`
+	LastName      *string          `json:"last_name,omitempty" gorm:"column:last_name"`
 	Password      string           `json:"-" gorm:"password"`
 	RoleID        string           `json:"role_id" gorm:"column:role"`
-	Role          *Role            `json:"role" gorm:"foreignKey:RoleID"`
-	Status        string           `json:"status" gorm:"status"`
+	Role          *Role            `json:"role,omitempty" gorm:"foreignKey:RoleID"`
+	Status        string           `json:"status,omitempty" gorm:"status"`
 	IsActive      bool             `json:"is_active" gorm:"is_active"`
-	PhoneNumber   string           `json:"phone_number" gorm:"phone_number;uniqueIndex"`
-	Provider      string           `gorm:"nullable"`
+	PhoneNumber   string           `json:"phone_number,omitempty" gorm:"phone_number;uniqueIndex"`
+	Provider      string           `json:"provider,omitempty" gorm:"column:provider"`
 	DateCreated   time.Time        `json:"date_created" gorm:"column:date_created;autoCreateTime"`
-	AvatarURL     *string          `json:"avatar_url" gorm:"column:avatar_url"`
-	DateOfBirth   *string          `json:"date_of_birth" gorm:"column:date_of_birth"`
-	Gender        *string          `json:"gender" gorm:"column:gender"`
-	StreetAddress *string          `json:"street_address" gorm:"column:street_address"`
-	City          *string          `json:"city" gorm:"column:city"`
-	State         *string          `json:"state" gorm:"column:state"`
-	PostalCode    *string          `json:"postal_code" gorm:"column:postal_code"`
-	Country       *string          `json:"country" gorm:"column:country"`
-	Preferences   *UserPreferences `json:"preferences" gorm:"foreignKey:CustomerID;references:ID"`
-	LoyaltyPoints int              `json:"loyalty_points" gorm:"column:loyalty_points;default:0"`
-	LoyaltyTier   string           `json:"loyalty_tier" gorm:"column:loyalty_tier;default:'bronze'"`
-	TotalOrders   int              `json:"total_orders" gorm:"column:total_orders;default:0"`
-	TotalSpent    float64          `json:"total_spent" gorm:"column:total_spent;default:0"`
-	EmailVerified bool             `json:"email_verified" gorm:"column:email_verified;default:false"`
-	PhoneVerified bool             `json:"phone_verified" gorm:"column:phone_verified;default:false"`
-	LastLoginAt   *time.Time       `json:"last_login_at" gorm:"column:last_login_at"`
+	AvatarURL     *string          `json:"avatar_url,omitempty" gorm:"-"`
+	DateOfBirth   *string          `json:"date_of_birth,omitempty" gorm:"-"`
+	Gender        *string          `json:"gender,omitempty" gorm:"-"`
+	StreetAddress *string          `json:"street_address,omitempty" gorm:"-"`
+	City          *string          `json:"city,omitempty" gorm:"-"`
+	State         *string          `json:"state,omitempty" gorm:"-"`
+	PostalCode    *string          `json:"postal_code,omitempty" gorm:"-"`
+	Country       *string          `json:"country,omitempty" gorm:"-"`
+	Preferences   *UserPreferences `json:"preferences,omitempty" gorm:"foreignKey:CustomerID;references:ID"`
+	LoyaltyPoints int              `json:"loyalty_points,omitempty" gorm:"-"`
+	LoyaltyTier   string           `json:"loyalty_tier,omitempty" gorm:"-"`
+	TotalOrders   int              `json:"total_orders,omitempty" gorm:"-"`
+	TotalSpent    float64          `json:"total_spent,omitempty" gorm:"-"`
+	EmailVerified bool             `json:"email_verified,omitempty" gorm:"-"`
+	PhoneVerified bool             `json:"phone_verified,omitempty" gorm:"-"`
+	LastLoginAt   *time.Time       `json:"last_login_at,omitempty" gorm:"-"`
 	UpdatedAt     time.Time        `json:"updated_at" gorm:"column:updated_at;autoUpdateTime"`
 }
 
