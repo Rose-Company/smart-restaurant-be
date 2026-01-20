@@ -96,8 +96,8 @@ func (h *Handler) CreateModifierOptions() gin.HandlerFunc {
 			return
 		}
 
-		var params = models.CreateModifierOptionRequest{}
-		if err := c.ShouldBindQuery(&params); err != nil {
+		var params models.CreateModifierOptionRequest
+		if err := c.ShouldBindJSON(&params); err != nil {
 			common.AbortWithError(c, err)
 			return
 		}

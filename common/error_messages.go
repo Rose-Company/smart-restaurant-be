@@ -60,12 +60,43 @@ var (
 	ErrActionNotAllowed  = errors.New("action_not_allowed")
 	ErrTokenNotFound     = errors.New("token_not_found")
 	ErrNotAuthorized     = errors.New("not_authorized")
-)
+	ErrUnauthorized      = errors.New("not_authorized")
 
-var (
-	ErrCodeInvalidTimeRange = errors.New("invalid_time_range")
-)
+	// Authentication errors
+	ErrInvalidInput                  = errors.New("invalid_input")
+	ErrEmailAlreadyExists            = errors.New("email_already_exists")
+	ErrInvalidEmailOrPassword        = errors.New("invalid_email_or_password")
+	ErrUserInactive                  = errors.New("user_inactive")
+	ErrInvalidGoogleAuthenToken      = errors.New("invalid_google_auth_token")
+	ErrEmailNotFound                 = errors.New("email_not_found")
+	ErrFailedToInValidateExistingOTP = errors.New("failed_to_invalidate_existing_otp")
+	ErrOTPNotFound                   = errors.New("otp_not_found")
+	ErrOTPExpired                    = errors.New("otp_expired")
+	ErrInvalidOTP                    = errors.New("invalid_otp")
+	ErrFailedToUpdateOTPStatus       = errors.New("failed_to_update_otp_status")
+	ErrOTPNotVerified                = errors.New("otp_not_verified")
+	ErrOTPAlreadyVerified            = errors.New("otp_already_verified")
+	ErrInvalidVerifyToken            = errors.New("invalid_verify_token")
 
+	// Order/Restaurant errors
+	ErrTableNotFound     = errors.New("table_not_found")
+	ErrMenuItemNotFound  = errors.New("menu_item_not_found")
+	ErrOrderNotFound     = errors.New("order_not_found")
+	ErrOrderItemNotFound = errors.New("order_item_not_found")
+
+	// Bill/Payment errors
+	ErrBillNotFound          = errors.New("bill_not_found")
+	ErrPaymentNotFound       = errors.New("payment_not_found")
+	ErrInvalidAmount         = errors.New("invalid_amount")
+	ErrInvalidPaymentMethod  = errors.New("invalid_payment_method")
+	ErrInvalidDiscount       = errors.New("invalid_discount")
+	ErrExpiredDiscount       = errors.New("expired_discount")
+	ErrMinOrderNotMet        = errors.New("min_order_not_met")
+	ErrDiscountLimitExceeded = errors.New("discount_limit_exceeded")
+	ErrPaymentFailed         = errors.New("payment_failed")
+	ErrCodeInvalidTimeRange  = errors.New("invalid_time_range")
+	ErrUserNotFound          = errors.New("user_not_found")
+)
 var listErrorData = []errData{
 	{
 		Code:        "cart_not_found",
@@ -336,6 +367,132 @@ var listErrorData = []errData{
 		HTTPCode:    403,
 		MessageViVn: "Hành động không được phép",
 		MessageEnUs: "Action not allowed",
+	},
+	{
+		Code:        "invalid_input",
+		HTTPCode:    400,
+		MessageViVn: "Dữ liệu đầu vào không hợp lệ",
+		MessageEnUs: "Invalid input",
+	},
+	{
+		Code:        "invalid_email_or_password",
+		HTTPCode:    401,
+		MessageViVn: "Email hoặc mật khẩu không đúng",
+		MessageEnUs: "Invalid email or password",
+	},
+	{
+		Code:        "user_inactive",
+		HTTPCode:    403,
+		MessageViVn: "Tài khoản đã bị vô hiệu hóa",
+		MessageEnUs: "User account is inactive",
+	},
+	{
+		Code:        "invalid_google_auth_token",
+		HTTPCode:    401,
+		MessageViVn: "Token Google không hợp lệ",
+		MessageEnUs: "Invalid Google authentication token",
+	},
+	{
+		Code:        "email_not_found",
+		HTTPCode:    404,
+		MessageViVn: "Email không tồn tại",
+		MessageEnUs: "Email not found",
+	},
+	{
+		Code:        "failed_to_invalidate_existing_otp",
+		HTTPCode:    500,
+		MessageViVn: "Không thể vô hiệu hóa OTP cũ",
+		MessageEnUs: "Failed to invalidate existing OTP",
+	},
+	{
+		Code:        "otp_not_found",
+		HTTPCode:    404,
+		MessageViVn: "Không tìm thấy OTP",
+		MessageEnUs: "OTP not found",
+	},
+	{
+		Code:        "otp_expired",
+		HTTPCode:    400,
+		MessageViVn: "OTP đã hết hạn",
+		MessageEnUs: "OTP has expired",
+	},
+	{
+		Code:        "invalid_otp",
+		HTTPCode:    400,
+		MessageViVn: "OTP không chính xác",
+		MessageEnUs: "Invalid OTP",
+	},
+	{
+		Code:        "failed_to_update_otp_status",
+		HTTPCode:    500,
+		MessageViVn: "Không thể cập nhật trạng thái OTP",
+		MessageEnUs: "Failed to update OTP status",
+	},
+	{
+		Code:        "otp_not_verified",
+		HTTPCode:    400,
+		MessageViVn: "OTP chưa được xác thực",
+		MessageEnUs: "OTP not verified",
+	},
+	{
+		Code:        "otp_already_verified",
+		HTTPCode:    400,
+		MessageViVn: "OTP đã được xác thực",
+		MessageEnUs: "OTP already verified",
+	},
+	{
+		Code:        "bill_not_found",
+		HTTPCode:    404,
+		MessageViVn: "Hóa đơn không tồn tại",
+		MessageEnUs: "Bill not found",
+	},
+	{
+		Code:        "payment_not_found",
+		HTTPCode:    404,
+		MessageViVn: "Thanh toán không tồn tại",
+		MessageEnUs: "Payment not found",
+	},
+	{
+		Code:        "invalid_amount",
+		HTTPCode:    400,
+		MessageViVn: "Số tiền không hợp lệ",
+		MessageEnUs: "Invalid amount",
+	},
+	{
+		Code:        "invalid_payment_method",
+		HTTPCode:    400,
+		MessageViVn: "Phương thức thanh toán không hợp lệ",
+		MessageEnUs: "Invalid payment method",
+	},
+	{
+		Code:        "invalid_discount",
+		HTTPCode:    400,
+		MessageViVn: "Mã giảm giá không hợp lệ",
+		MessageEnUs: "Invalid discount code",
+	},
+	{
+		Code:        "expired_discount",
+		HTTPCode:    400,
+		MessageViVn: "Mã giảm giá đã hết hạn",
+		MessageEnUs: "Discount code has expired",
+	},
+	{
+		Code:        "min_order_not_met",
+		HTTPCode:    400,
+		MessageViVn: "Giá trị đơn hàng không đạt yêu cầu tối thiểu",
+		MessageEnUs: "Order amount does not meet minimum requirement",
+	},
+	{
+		Code:        "discount_limit_exceeded",
+		HTTPCode:    400,
+		MessageViVn: "Mã giảm giá đã vượt quá lần sử dụng",
+		MessageEnUs: "Discount limit exceeded",
+	},
+	{
+		Code:        "payment_failed",
+		HTTPCode:    400,
+		MessageViVn: "Thanh toán thất bại",
+		MessageEnUs: "Payment failed",
 	},
 }
 

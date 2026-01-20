@@ -2,16 +2,16 @@ package middleware
 
 import (
 	"app-noti/common"
+	"app-noti/config"
 	"fmt"
 	"net/http"
-	"os"
 	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var jwtKey = []byte(os.Getenv(common.ENVJWTSecretKey))
+var jwtKey = []byte(config.Config.JwtSecret)
 
 func getRawToken(c *gin.Context) string {
 	rawToken := c.GetHeader("Authorization")
@@ -39,10 +39,6 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		rawToken := getRawToken(c)
 		if rawToken == "" {
-			if c.FullPath() == "/v1/orders/estimates" {
-				c.Next()
-				return
-			}
 			c.AbortWithStatusJSON(http.StatusUnauthorized, common.AllErrors.New(common.ErrCodeNotAuthorized, "vi"))
 			return
 		}

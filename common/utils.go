@@ -2,6 +2,7 @@ package common
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -143,6 +144,51 @@ func UnmarshalJSON(input string) (datatypes.JSON, error) {
 func Contains(slice []int, item int) bool {
 	for _, s := range slice {
 		if s == item {
+			return true
+		}
+	}
+	return false
+}
+
+// String pointer helper
+func StrPtr(s string) *string {
+	return &s
+}
+
+// Int pointer helper
+func IntPtr(i int) *int {
+	return &i
+}
+
+// GenerateOrderNumber generates unique order number in format ORD-YYYY-NNNNNN
+func GenerateOrderNumber() string {
+	now := time.Now()
+	return fmt.Sprintf("ORD-%d-%06d", now.Year(), now.Unix()%1000000)
+}
+
+// GenerateBillNumber generates unique bill number in format BILL-YYYY-NNNNNN
+func GenerateBillNumber() string {
+	now := time.Now()
+	return fmt.Sprintf("BILL-%d-%06d", now.Year(), now.Unix()%1000000)
+}
+
+// IsValidOrderStatusTransition validates order status transitions
+func IsValidOrderStatusTransition(from, to string) bool {
+	validTransitions := map[string][]string{
+		"pending":   {"confirmed", "cancelled"},
+		"confirmed": {"preparing", "cancelled"},
+		"preparing": {"ready", "cancelled"},
+		"ready":     {"served"},
+		"served":    {"completed"},
+	}
+
+	allowed, exists := validTransitions[from]
+	if !exists {
+		return false
+	}
+
+	for _, status := range allowed {
+		if status == to {
 			return true
 		}
 	}
@@ -310,4 +356,28 @@ func JoinStrings(parts []string, separator string) string {
 		result += separator + parts[i]
 	}
 	return result
+}
+
+func GenerateRandomOTP() string {
+	rand.Seed(time.Now().UnixNano())
+	otp := rand.Intn(999999-100000+1) + 100000
+	return fmt.Sprintf("%06d", otp)
+}
+
+func NormalizeToBangkokTimezone(t time.Time) (time.Time, error) {
+	loc, err := time.LoadLocation("Asia/Bangkok")
+	if err != nil {
+		return t, err
+	}
+	return t.In(loc), nil
+}
+
+func GenerateShortUUID() (string, error) {
+	u, err := uuid.NewRandom()
+	if err != nil {
+		return "", err
+	}
+
+	encoded := base64.RawURLEncoding.EncodeToString(u[:])
+	return encoded, nil
 }

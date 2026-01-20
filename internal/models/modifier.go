@@ -19,6 +19,21 @@ type ModifierGroup struct {
 	UpdatedAt     *time.Time `json:"updated_at,omitempty" gorm:"column:updated_at"`
 }
 
+type ModifierGroupResponse struct {
+	ID            int               `json:"id" gorm:"column:id;primaryKey;autoIncrement"`
+	RestaurantID  int               `json:"restaurant_id" gorm:"column:restaurant_id"`
+	Name          string            `json:"name" gorm:"column:name"`
+	SelectionType string            `json:"selection_type" gorm:"column:selection_type"`
+	IsRequired    bool              `json:"is_required" gorm:"column:is_required"`
+	MinSelections int               `json:"min_selections" gorm:"column:min_selections"`
+	MaxSelections int               `json:"max_selections" gorm:"column:max_selections"`
+	DisplayOrder  int               `json:"display_order" gorm:"column:display_order"`
+	Status        string            `json:"status" gorm:"column:status"`
+	Options       []*ModifierOption `json:"options"`
+	CreatedAt     *time.Time        `json:"created_at,omitempty" gorm:"column:created_at"`
+	UpdatedAt     *time.Time        `json:"updated_at,omitempty" gorm:"column:updated_at"`
+}
+
 func (ModifierGroup) TableName() string {
 	return common.POSTGRES_TABLE_NAME_MODIFIER_GROUPS
 }

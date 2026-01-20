@@ -32,6 +32,56 @@ func (h *Handler) GetTables() gin.HandlerFunc {
 	}
 }
 
+// GetTablesForStaff - Get tables with orders for staff view (waiter/kitchen)
+func (h *Handler) GetTablesForStaff() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fmt.Println("flag 1")
+		var params = models.ListTablesForStaffRequest{}
+		if err := c.ShouldBindQuery(&params); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		// Get staff ID from JWT if user is authenticated
+		ok, profile := common.ProfileFromJwt(c)
+		if ok {
+			fmt.Println("flag 2 - Staff profile found:", profile)
+			params.StaffID = profile.Id
+		} else {
+			fmt.Println("flag 2 FAILED - JWT not found in context")
+			common.AbortWithError(c, common.ErrUnauthorized)
+			return
+		}
+
+		data, err := h.service.GetTablesForStaff(c.Request.Context(), &params)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Tables retrieved successfully", data))
+	}
+}
+
+// GetTableDetailForStaff - Get table detail with all order items for staff
+func (h *Handler) GetTableDetailForStaff() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var params models.TableParamsUri
+		if err := c.ShouldBindUri(&params); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		data, err := h.service.GetTableDetailForStaff(c.Request.Context(), params.ID)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Table detail retrieved successfully", data))
+	}
+}
+
 func (h *Handler) GetTableByID() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
@@ -94,6 +144,32 @@ func (h *Handler) UpdateTable() gin.HandlerFunc {
 	}
 }
 
+// UpdateTableFlags - Staff can update table flags (is_ready_to_bill, is_help_needed)
+func (h *Handler) UpdateTableFlags() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		var request models.UpdateTableFlagsRequest
+		if err := c.ShouldBindJSON(&request); err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		data, err := h.service.UpdateTableFlags(c, id, &request)
+		if err != nil {
+			common.AbortWithError(c, err)
+			return
+		}
+
+		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(data))
+	}
+}
+
 func (h *Handler) UpdateTableStatus() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
@@ -131,16 +207,12 @@ func (h *Handler) GetQrCodeByTableId() gin.HandlerFunc {
 		qrCodeInfo, err := h.service.GetQrCodeByTableID(c, id)
 		if err != nil {
 			common.AbortWithError(c, err)
+			return
 		}
 
-		url := fmt.Sprintf(
-			"https://smart-restaurant-fe.vercel.app/menu?table=%d&token=%s",
-			id,
-			qrCodeInfo.Token,
-		)
-
 		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(gin.H{
-			"url":       url,
+			"table_id":  id,
+			"token":     qrCodeInfo.Token,
 			"create_at": qrCodeInfo.CreatedAt,
 			"expire_at": qrCodeInfo.ExpiresAt,
 		}))
@@ -156,15 +228,13 @@ func (h *Handler) GenerateQrCodeByTableId() gin.HandlerFunc {
 			return
 		}
 
-		url, err := h.service.GenerateQrCodeByTableId(c, id)
+		data, err := h.service.GenerateQrCodeByTableId(c, id)
 		if err != nil {
 			common.AbortWithError(c, err)
 			return
 		}
 
-		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(gin.H{
-			"url": url,
-		}))
+		c.JSON(common.SUCCESS_STATUS, common.ResponseOk(data))
 	}
 }
 

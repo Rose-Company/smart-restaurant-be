@@ -1,8 +1,11 @@
 package config
 
 import (
+	"app-noti/internal/util"
 	"bytes"
+	"fmt"
 	"strings"
+	"time"
 
 	_ "embed"
 
@@ -27,6 +30,10 @@ type Schema struct {
 		GormDebug string `mapstructure:"gorm_debug"`
 	} `mapstructure:"postgres"`
 
+	Payment struct {
+		VNPay VNPay `mapstructure:"vnpay"`
+	} `mapstructure:"payment"`
+
 	Redis *Redis `yaml:"redis" mapstructure:"redis"`
 
 	DigitalOcean struct {
@@ -44,6 +51,11 @@ type Schema struct {
 		IdleConnectionTimeout int `mapstructure:"idle_connection_timeout"`
 	} `mapstructure:"http"`
 
+	Mail struct {
+		ApiKey    string `mapstructure:"api_key"`
+		FromEmail string `mapstructure:"from_email"`
+	} `mapstructure:"mail"`
+
 	JwtSecret        string `mapstructure:"jwt_secret"`
 	TokenExpiredTime int64  `mapstructure:"token_expired_time"`
 }
@@ -54,6 +66,37 @@ type Redis struct {
 	Port string `yaml:"internal_port" mapstructure:"internal_port"`
 	DB   int    `yaml:"db_idx" mapstructure:"db_idx"`
 	Pass string `yaml:"pass" mapstructure:"pass"`
+}
+
+type VNPay struct {
+	PayURL    string `mapstructure:"url"`
+	ReturnURL string `mapstructure:"return_url"`
+	TmnCode   string `mapstructure:"tmn_code"`
+	SecretKey string `mapstructure:"secret_key"`
+	Command   string `mapstructure:"command"`
+	OrderType string `mapstructure:"order_type"`
+	Version   string `mapstructure:"version"`
+}
+
+func (c *VNPay) BuildVNPayParams() map[string]string {
+	now := time.Now()
+	format := "20060102150405"
+
+	params := map[string]string{
+		"vnp_Version":    c.Version,
+		"vnp_Command":    c.Command,
+		"vnp_TmnCode":    c.TmnCode,
+		"vnp_CurrCode":   "VND",
+		"vnp_TxnRef":     util.GetRandomNumber(8),
+		"vnp_OrderInfo":  util.GetRandomNumber(8),
+		"vnp_OrderType":  c.OrderType,
+		"vnp_Locale":     "vn",
+		"vnp_ReturnUrl":  c.ReturnURL,
+		"vnp_CreateDate": now.Format(format),
+		"vnp_ExpireDate": now.Add(10000 * time.Minute).Format(format),
+	}
+
+	return params
 }
 
 var Config Schema
@@ -73,4 +116,13 @@ func init() {
 	if err != nil {
 		ll.Fatal("Failed to unmarshal config", l.Error(err))
 	}
+
+	// Debug print VNPay config check
+	fmt.Printf("VNPay URL: %s\n", Config.Payment.VNPay.PayURL)
+	fmt.Printf("VNPay Return URL: %s\n", Config.Payment.VNPay.ReturnURL)
+	fmt.Printf("VNPay TMN Code: %s\n", Config.Payment.VNPay.TmnCode)
+	fmt.Printf("VNPay Secret Key: %s\n", Config.Payment.VNPay.SecretKey)
+	fmt.Printf("VNPay Command: %s\n", Config.Payment.VNPay.Command)
+	fmt.Printf("VNPay Order Type: %s\n", Config.Payment.VNPay.OrderType)
+	fmt.Printf("VNPay Version: %s\n", Config.Payment.VNPay.Version)
 }

@@ -27,6 +27,19 @@ http:
   max_idle_connection: 10
   idle_connection_timeout: 30
 
+mail:
+  api_key:
+  from_email:
+
 jwt_secret:
 token_expired_time: 604800000
 
+payment:
+  vnpay:
+    url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+    return_url: https://smart-restaurant-fe.vercel.app/payment/callback
+    tmn_code: 
+    secret_key: 
+    command: PAY
+    order_type: other
+    version: 2.1.0

@@ -47,4 +47,34 @@ const (
 	POSTGRES_TABLE_NAME_MODIFIER_GROUPS           = "public.modifier_groups"
 	POSTGRES_TABLE_NAME_MODIFIER_OPTIONS          = "public.modifier_options"
 	POSTGRES_TABLE_NAME_MENU_ITEM_MODIFIER_GROUPS = "public.menu_item_modifier_groups"
+	POSTGRES_TABLE_NAME_USERS                     = "public.users"
+	POSTGRES_TABLE_NAME_ROLES                     = "public.roles"
+	POSTGRES_TABLE_NAME_OTPS                      = "public.otps"
+	POSTGRES_TABLE_NAME_OTP_ATTEMPTS              = "public.otp_attempts"
+)
+
+// User roles
+const (
+	ROLE_END_USER      = "end_user"
+	ROLE_ADMIN         = "admin"
+	ROLE_END_USER_UUID = "end_user_uuid" // Replace with actual UUID from database
+	ROLE_ADMIN_UUID    = "admin_uuid"    // Replace with actual UUID from database
+)
+
+// User providers
+const (
+	USER_PROVIDER_LOCAL  = "local"
+	USER_PROVIDER_GOOGLE = "google"
+)
+
+// OTP types
+const (
+	TypeResetPassword = "reset_password"
+	TypeVerifyEmail   = "verify_email"
+)
+
+// User status
+const (
+	USER_STATUS_ACTIVE   = "active"
+	USER_STATUS_INACTIVE = "inactive"
 )
