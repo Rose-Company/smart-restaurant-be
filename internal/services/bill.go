@@ -107,6 +107,16 @@ func (s *Service) CreateBill(ctx context.Context, req *models.CreateBillRequest)
 		return nil, err
 	}
 
+	// Mark table as ready to bill
+	_, err = s.tableRepo.UpdateColumns(ctx, req.TableID, map[string]interface{}{
+		"is_ready_to_bill": true,
+		"updated_at":       time.Now(),
+	})
+	if err != nil {
+		// Log error but don't fail the bill creation
+		fmt.Printf("Warning: failed to update table is_ready_to_bill: %v\n", err)
+	}
+
 	// 11. Build detailed response with all orders and items
 	return s.buildBillDetailResponse(ctx, createdBill, allOrders, itemsByOrderID, table)
 }

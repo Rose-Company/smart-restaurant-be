@@ -120,6 +120,7 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		orders.POST("/:id/alert", middleware.OptionalUserAuthentication(), h.SendKitchenAlert)                       // TASK-008: Send kitchen alert
 		orders.POST("/:id/review", middleware.OptionalUserAuthentication(), h.CreateOrderReview)                     // TASK-009: Submit review
 		orders.GET("/summary/category", middleware.OptionalUserAuthentication(), h.GetOrderItemsSummaryByCategory)   // TASK-010: Get items summary by category
+		orders.POST("/tables/:id/call-staff", middleware.OptionalUserAuthentication(), h.CallStaff)                  // Call staff for assistance
 	}
 
 	// Bill Management APIs (TASK-010 to TASK-012)

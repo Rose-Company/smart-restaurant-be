@@ -991,6 +991,44 @@ func (s *Service) CancelOrder(ctx context.Context, orderID int, req models.Cance
 	}, nil
 }
 
+// CallStaff - Customer calls staff for assistance on a table
+func (s *Service) CallStaff(ctx context.Context, tableID int) (interface{}, error) {
+	// Get all active orders for this table
+	orders, err := s.orderRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("table_id = ? AND status IN ?", tableID, []string{"pending", "accepted", "preparing", "ready", "served", "completed"})
+	})
+	if err != nil || len(orders) == 0 {
+		return nil, common.ErrOrderNotFound
+	}
+
+	// Update all orders: set is_help_needed = true
+	now := time.Now()
+	updatedCount := 0
+	for _, order := range orders {
+		_, err := s.orderRepo.UpdateColumns(ctx, order.ID, map[string]interface{}{
+			"is_help_needed": true,
+			"updated_at":     now,
+		})
+		if err == nil {
+			updatedCount++
+		}
+	}
+
+	// Update table: set is_help_needed = true
+	_, err = s.tableRepo.UpdateColumns(ctx, tableID, map[string]interface{}{
+		"is_help_needed": true,
+		"updated_at":     now,
+	})
+
+	return map[string]interface{}{
+		"table_id":       tableID,
+		"orders_updated": updatedCount,
+		"is_help_needed": true,
+		"timestamp":      now,
+		"message":        "Staff assistance requested",
+	}, nil
+}
+
 // SendKitchenAlert - TASK-008: Send alert to waiter
 func (s *Service) SendKitchenAlert(ctx context.Context, orderID int, req models.CreateAlertRequest) (*models.AlertResponse, error) {
 	order, err := s.orderRepo.GetDetailByConditions(ctx, func(tx *gorm.DB) {
