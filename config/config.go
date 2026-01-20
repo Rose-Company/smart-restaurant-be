@@ -3,6 +3,7 @@ package config
 import (
 	"app-noti/internal/util"
 	"bytes"
+	"fmt"
 	"strings"
 	"time"
 
@@ -115,4 +116,13 @@ func init() {
 	if err != nil {
 		ll.Fatal("Failed to unmarshal config", l.Error(err))
 	}
+
+	// Debug print VNPay config check
+	fmt.Printf("VNPay URL: %s\n", Config.Payment.VNPay.PayURL)
+	fmt.Printf("VNPay Return URL: %s\n", Config.Payment.VNPay.ReturnURL)
+	fmt.Printf("VNPay TMN Code: %s\n", Config.Payment.VNPay.TmnCode)
+	fmt.Printf("VNPay Secret Key: %s\n", Config.Payment.VNPay.SecretKey)
+	fmt.Printf("VNPay Command: %s\n", Config.Payment.VNPay.Command)
+	fmt.Printf("VNPay Order Type: %s\n", Config.Payment.VNPay.OrderType)
+	fmt.Printf("VNPay Version: %s\n", Config.Payment.VNPay.Version)
 }
