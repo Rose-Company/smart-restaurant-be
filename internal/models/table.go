@@ -164,6 +164,7 @@ type TableDetailForStaffResponse struct {
 	TotalBill      float64                   `json:"total_bill"`
 	OrderItems     []OrderItemDetailForStaff `json:"order_items"`
 	AllOrdersCount int                       `json:"all_orders_count"`
+	Bill           *Bill                     `json:"bill,omitempty"`
 	CreatedAt      *time.Time                `json:"created_at,omitempty"`
 }
 

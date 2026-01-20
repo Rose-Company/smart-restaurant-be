@@ -591,6 +591,15 @@ func (s *Service) GetTableDetailForStaff(ctx context.Context, tableID int) (*mod
 		totalBill += order.Total
 	}
 
+	// Get bill for this table
+	var bill *models.Bill
+	billData, err := s.billRepo.ListByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("table_id = ?", tableID).Order("created_at DESC").Limit(1)
+	})
+	if err == nil && len(billData) > 0 {
+		bill = billData[0]
+	}
+
 	return &models.TableDetailForStaffResponse{
 		ID:             table.ID,
 		TableNumber:    table.TableNumber,
@@ -601,6 +610,7 @@ func (s *Service) GetTableDetailForStaff(ctx context.Context, tableID int) (*mod
 		TotalBill:      totalBill,
 		OrderItems:     itemResponses,
 		AllOrdersCount: len(allOrders),
+		Bill:           bill,
 		CreatedAt:      table.CreatedAt,
 	}, nil
 }
