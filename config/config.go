@@ -30,7 +30,7 @@ type Schema struct {
 	} `mapstructure:"postgres"`
 
 	Payment struct {
-		VNPay VNPay `mapstructure:"vnPay"`
+		VNPay VNPay `mapstructure:"vnpay"`
 	} `mapstructure:"payment"`
 
 	Redis *Redis `yaml:"redis" mapstructure:"redis"`
