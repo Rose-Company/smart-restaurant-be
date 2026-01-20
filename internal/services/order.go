@@ -113,7 +113,7 @@ func (s *Service) createOrderWithTransaction(ctx context.Context, req models.Cre
 	}
 
 	// 5. Calculate tax (10%)
-	taxAmount = totalAmount * 0.10
+	taxAmount = totalAmount * 0.08
 
 	// 6. Create order
 	order = &models.Order{
