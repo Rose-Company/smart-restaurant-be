@@ -168,7 +168,11 @@ func (s *Service) GetMe(ctx context.Context, userID string) (*models.GetMeRespon
 		return nil, common.ErrUnauthorized
 	}
 
-	user, err := s.userRepo.GetByID(ctx, userID)
+	// Get user with role preloaded
+	user, err := s.userRepo.GetDetailByConditions(ctx, func(tx *gorm.DB) {
+		tx.Where("id = ?", userID).
+			Preload("Role")
+	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, common.ErrUserNotFound
@@ -182,10 +186,12 @@ func (s *Service) GetMe(ctx context.Context, userID string) (*models.GetMeRespon
 	}
 
 	return &models.GetMeResponse{
-		ID:       user.ID,
-		Email:    user.Email,
-		RoleID:   user.RoleID,
-		RoleName: roleName,
+		ID:        user.ID,
+		Email:     user.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		RoleID:    user.RoleID,
+		RoleName:  roleName,
 	}, nil
 }
 
