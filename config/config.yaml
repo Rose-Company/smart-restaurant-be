@@ -36,8 +36,8 @@ token_expired_time: 604800000
 
 payment:
   vnPay:
-    url: 
-    returnUrl:
+    url: https://sandbox.vnpayment.vn/paymentv2/vpcpay.html
+    returnUrl: https://smart-restaurant-fe.vercel.app/payment/callback
     tmnCode: 
     secretKey: 
     command: 
