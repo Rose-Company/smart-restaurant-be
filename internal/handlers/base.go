@@ -123,9 +123,6 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		orders.POST("/tables/:id/call-staff", middleware.OptionalUserAuthentication(), h.CallStaff)                  // Call staff for assistance
 	}
 
-	// Bill Management APIs (TASK-010 to TASK-012)
-	// Bill is created on TABLE level, not order level
-	// One bill per table can include multiple orders and items
 	bills := c.Group("/api/bills")
 	{
 		bills.POST("", middleware.OptionalUserAuthentication(), h.CreateBill())      // TASK-010: Create bill from table (includes all orders & items on table)
@@ -133,7 +130,6 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		bills.PATCH("/:id", middleware.OptionalUserAuthentication(), h.UpdateBill()) // TASK-012: Update bill (add discount, mark paid)
 	}
 
-	// Payment Management APIs (TASK-013 to TASK-014)
 	payments := c.Group("/api/payments")
 	{
 		payments.POST("", middleware.OptionalUserAuthentication(), h.ProcessPayment())             // TASK-013: Process payment
