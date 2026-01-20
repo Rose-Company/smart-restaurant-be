@@ -45,25 +45,25 @@ func (s *Service) createOrderWithTransaction(ctx context.Context, req models.Cre
 	}
 
 	// 1.5. Auto-assign waiter (staff) to table if not already assigned
-	var waiterID *string
+	var waiterID *string = nil
 
 	// Check if table already has active assignment
 	existingAssignment, _ := s.waiterTableAssignmentRepo.GetDetailByConditions(ctx, func(tx *gorm.DB) {
 		tx.Where("table_id = ? AND is_active = true", req.TableID)
 	})
 
-	if existingAssignment != nil {
+	if existingAssignment != nil && existingAssignment.WaiterID != "" {
 		waiterID = &existingAssignment.WaiterID
 	} else {
 		// Get random staff member
 		staffList, _ := s.userRepo.ListByConditions(ctx, func(tx *gorm.DB) {
-			tx.Joins("JOIN roles r ON users.role_id = r.id").
+			tx.Joins("JOIN roles r ON users.role = r.id").
 				Where("r.name = ?", "staff").
 				Order("RANDOM()").
 				Limit(1)
 		})
 
-		if len(staffList) > 0 && staffList[0] != nil {
+		if len(staffList) > 0 && staffList[0] != nil && staffList[0].ID != "" {
 			staff := staffList[0]
 			waiterID = &staff.ID
 
