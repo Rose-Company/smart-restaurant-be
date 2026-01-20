@@ -19,6 +19,7 @@ type ListTablesForStaffRequest struct {
 	Status        *string `form:"status"`
 	IsReadyToBill *bool   `form:"is_ready_to_bill"`
 	IsHelpNeeded  *bool   `form:"is_help_needed"`
+	StaffID       string  `json:"staff_id"`
 }
 
 type TableParamsUri struct {
