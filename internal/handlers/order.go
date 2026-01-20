@@ -212,6 +212,24 @@ func (h *Handler) CancelOrder(c *gin.Context) {
 	c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Order cancelled successfully", result))
 }
 
+// CallStaff handles POST /api/tables/:id/call-staff
+// Allows customer to request staff assistance for a table
+func (h *Handler) CallStaff(c *gin.Context) {
+	tableID, err := strconv.Atoi(c.Param("id"))
+	if err != nil {
+		common.AbortWithError(c, common.ErrInvalidInput)
+		return
+	}
+
+	result, err := h.service.CallStaff(c.Request.Context(), tableID)
+	if err != nil {
+		common.AbortWithError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, common.BaseResponseMess(http.StatusOK, "Staff called successfully", result))
+}
+
 // SendKitchenAlert handles POST /api/orders/:id/alert
 // TASK-008: Send alert to waiter (item ready)
 func (h *Handler) SendKitchenAlert(c *gin.Context) {
