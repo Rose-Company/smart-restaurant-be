@@ -381,10 +381,9 @@ func (s *Service) GetOrders(ctx context.Context, request *models.ListOrdersReque
 	// Build response
 	var items []models.OrderListItemResponse
 	for _, order := range orders {
-		// Get order items with modifiers preloaded, excluding completed items
+		// Get order items with modifiers preloaded
 		orderItems, _ := s.orderItemRepo.ListByConditions(ctx, func(tx *gorm.DB) {
 			tx.Where("order_id = ?", order.ID)
-			tx.Where("status != ?", "completed")
 			tx.Preload("MenuItem")
 			tx.Preload("Modifiers")
 		})
