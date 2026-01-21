@@ -24,8 +24,8 @@ func NewHandler(sc server.ServerContext) *Handler {
 }
 
 func (h *Handler) RegisterRouter(c *gin.Engine) {
-	// authConfig := h.sc.GetAuthConfig()
-	// authenticator := middleware.NewAuthenticator(authConfig)
+	authConfig := h.sc.GetAuthConfig()
+	authenticator := middleware.NewAuthenticator(authConfig)
 
 	userRoutes := c.Group("/api/user")
 	{
@@ -172,7 +172,7 @@ func (h *Handler) RegisterRouter(c *gin.Engine) {
 		staff.GET("/profile", middleware.OptionalUserAuthentication(), h.GetStaffProfile)               // TASK-028: Get staff profile
 		staff.PUT("/profile", middleware.OptionalUserAuthentication(), h.UpdateStaffProfile)            // TASK-029: Update own profile
 		staff.PATCH("/password", middleware.OptionalUserAuthentication(), h.ChangeStaffPassword)        // TASK-030: Change password
-		staff.GET("/tables", middleware.OptionalUserAuthentication(), h.GetTablesForStaff())            // Staff view: Get tables with orders
+		staff.GET("/tables", authenticator.ACLAuthentication("LIST_TABLES"), h.GetTablesForStaff())     // Staff view: Get tables with orders
 		staff.GET("/tables/:id", middleware.OptionalUserAuthentication(), h.GetTableDetailForStaff())   // Staff view: Get table detail with items
 		staff.PATCH("/tables/:id/flags", middleware.OptionalUserAuthentication(), h.UpdateTableFlags()) // Update table flags (is_ready_to_bill, is_help_needed)
 	}
